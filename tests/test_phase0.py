@@ -212,4 +212,4 @@ if __name__ == "__main__":
     test_exception_hierarchy()
     test_main_importable()
     test_inter_module_scenario()
-    print("✅ Tous les tests Phase 0 (complet) ont passé.")
+    print("[OK] Tous les tests Phase 0 (complet) ont passé.")

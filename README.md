@@ -6,7 +6,7 @@ Système automatisé d'analyse et de génération de signaux de trading sur l'Or
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Avec Conda (recommandé)
 
@@ -25,7 +25,7 @@ pip install -e ".[dev]"
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 1. Copier le template de secrets :
    ```bash
@@ -44,7 +44,7 @@ pip install -e ".[dev]"
 
 ---
 
-## 🏃 Lancement
+## Lancement
 
 ```bash
 python src/main.py
@@ -52,7 +52,7 @@ python src/main.py
 
 ---
 
-## 📁 Structure du projet
+## Structure du projet
 
 ```
 ├── config/              # Configuration (YAML + secrets)
@@ -89,6 +89,6 @@ pytest tests/
 
 ---
 
-## 📄 License
+## License
 
 MIT
