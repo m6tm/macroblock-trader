@@ -1,6 +1,52 @@
 # 18 — Plan d'Implémentation Atomique
 
-> Ce document découpe le développement de MacroBlock Trader en phases et sous-phases atomiques. Chaque tâche est l'unité de travail la plus petite possible qui produit une valeur vérifiable. Pas de durées — seulement un ordre logique de dépendances.
+
+---
+
+## Choix Architectural
+
+Avant de découper les tâches, le plan repose sur une décision structurelle explicite :
+
+**Architecture retenue : Monolithe Modulaire Event-Driven (In-Process)**
+
+Un seul processus Python, 8 modules fonctionnels découplés, communication via un bus d'événements en mémoire. Pas de microservices, pas d'architecture hexagonale stricte, pas de serveur.
+
+### Pourquoi pas l'Hexagonale (Ports & Adapters) ?
+Trop de boilerplate pour un projet solo. On garde l'esprit (isoler le métier), sans la cérémonie des interfaces et injections.
+
+### Pourquoi pas les Microservices ?
+Latence réseau incompatible avec le temps réel (M5/M15), complexité opérationnelle inutile pour 1 développeur.
+
+### Pourquoi pas un Monolithe Classique (Big Ball of Mud) ?
+8 modules avec imports circulaires = spaghetti. Le bus d'événements garantit que le module Macro ignore l'existence du module Scoring.
+
+### Pourquoi pas Serverless ?
+Cold start, limite de durée, coût imprévisible. Le bot tourne 24/5 en continu avec un état en mémoire.
+
+### Structure de fichiers reflétant ce choix
+```
+src/
+├── core/                    # Event Bus, config, exceptions, logging
+│   ├── event_bus.py
+│   ├── config.py
+│   ├── exceptions.py
+│   └── logger.py
+├── modules/                 # 8 modules métiers (découplés)
+│   ├── macro/
+│   ├── sentiment/
+│   ├── technical/
+│   ├── fusion/
+│   ├── risk/
+│   ├── journal/
+│   ├── vector_brain/
+│   └── notifications/
+├── data/                    # Fetchers, normaliseur, cache
+├── engine/                  # Orchestration (si besoin, mais priorité au bus)
+├── storage/                 # SQLite, repositories
+├── memory/                  # ChromaDB, embeddings
+├── main.py                  # Point d'entrée unique
+└── __init__.py
+```
 
 ---
 
@@ -8,7 +54,7 @@
 
 | Phase | Nom | Dépend de | Objectif |
 |-------|-----|-----------|----------|
-| 0 | Fondation | — | Structure, config, event bus |
+| 0 | Fondation | — | Structure, config, event bus interne |
 | 1 | Couche Données | 0 | Ingestion, normalisation, cache temps réel |
 | 2 | Module Technique SMC | 1 | Détection OB, FVG, structure, liquidité, scoring tech |
 | 3 | Module Macro | 1 | DXY, yields, inflation, scoring macro Or |
@@ -18,7 +64,7 @@
 | 7 | Journal de Trading | 6 | SQLite, Trade ID, cycle de vie, feedback |
 | 8 | Cerveau Vectoriel | 7 | ChromaDB, embeddings, retrieval, ajustement |
 | 9 | Notifications | 6 | Telegram, dashboard, commandes utilisateur |
-| 10 | Agent Rédactur Kimi | 9 | Moonshot AI, prompts, fallback templates |
+| 10 | Agent Rédacteur Kimi | 9 | Moonshot AI, prompts, fallback templates |
 | 11 | Tests & Qualité | 0–10 | Unit, intégration, backtest, validation vectorielle |
 | 12 | Déploiement & Docs | 11 | Packaging, doc technique, CI/CD |
 
@@ -34,10 +80,13 @@
 - [ ] Créer `.gitignore` adapté (Python, secrets, data, chroma_db)
 - [ ] Créer `README.md` technique (installation, lancement, structure)
 
-### 0.2 Architecture de fichiers
-- [ ] Créer l'arborescence `src/` avec tous les packages vides (`__init__.py`)
+### 0.2 Architecture de fichiers (Monolithe Modulaire)
+- [ ] Créer `src/core/` avec `__init__.py` (event bus, config, exceptions, logging)
+- [ ] Créer `src/modules/` avec un sous-dossier par module (`macro/`, `sentiment/`, `technical/`, `fusion/`, `risk/`, `journal/`, `vector_brain/`, `notifications/`)
+- [ ] Créer `src/data/`, `src/storage/`, `src/memory/`
+- [ ] Créer `src/main.py` (point d'entrée unique, un seul processus)
 - [ ] Créer les dossiers `config/`, `data/`, `logs/`, `screenshots/`, `tests/`, `notebooks/`
-- [ ] Créer `src/main.py` (point d'entrée vide mais exécutable)
+- [ ] Règle d'or : aucun module sous `src/modules/` ne fait d'import direct d'un autre module du même niveau. Toute communication passe par le bus.
 
 ### 0.3 Gestion de configuration
 - [ ] Créer `config/settings.yaml` avec tous les paramètres par défaut
@@ -45,9 +94,10 @@
 - [ ] Implémenter le loader de config (`src/core/config.py`) avec Pydantic
 - [ ] Valider la config au démarrage (types, bornes, valeurs obligatoires)
 
-### 0.4 Event Bus interne
-- [ ] Définir la classe de base `Event` (timestamp, type, payload)
-- [ ] Implémenter `EventBus` (pub/sub en mémoire, async/sync)
+### 0.4 Event Bus interne (In-Process, pas de réseau)
+- [ ] Définir la classe de base `Event` (timestamp, type, payload, source_module)
+- [ ] Implémenter `EventBus` (pub/sub en mémoire, single-threaded ou async selon besoin)
+- [ ] Spécifier : pas de broker externe (Redis, RabbitMQ), pas de sérialisation JSON inutile — appels Python directs
 - [ ] Créer les classes d'événements typés :
   - `MarketDataEvent`
   - `MacroUpdateEvent`
@@ -59,14 +109,15 @@
   - `VectorMemoryEvent`
   - `SimilarTradesFoundEvent`
 - [ ] Implémenter le logger structuré (`loguru`) avec rotation
-- [ ] Écrire un test : émettre un événement, le recevoir, le logger
+- [ ] Écrire un test : émettre un événement, le recevoir dans un autre module, le logger
 
 ### 0.5 Exceptions & Résilience
 - [ ] Définir la hiérarchie d'exceptions custom (`DataFetchError`, `ValidationError`, `RiskLockError`...)
 - [ ] Implémenter le handler global d'exceptions dans `main.py`
 - [ ] Implémenter le mode "dégradation gracieuse" : si une source tombe, le bot continue
+- [ ] Un module en erreur ne doit jamais planter le bus ou les autres modules
 
-**Validation de phase** : `python src/main.py` démarre sans erreur, charge la config, émet et loggue un événement test.
+**Validation de phase** : `python src/main.py` démarre sans erreur, charge la config, émet et loggue un événement test. Les modules sont importables sans imports croisés.
 
 ---
 
@@ -126,7 +177,7 @@
 **Objectif** : Le bot détecte automatiquement les setups SMC sur XAU/USD.
 
 ### 2.1 Structure de Marché
-- [ ] Créer `src/analysis/technical.py`
+- [ ] Créer `src/modules/technical/core.py`
 - [ ] Implémenter `detect_swing_highs_lows(df, lookback)`
 - [ ] Implémenter `detect_bos(df, direction)` — Break of Structure
 - [ ] Implémenter `detect_choch(df, direction)` — Change of Character
@@ -165,7 +216,7 @@
 - [ ] Implémenter `calculate_technical_score(setup)` — agrégation 0 à 5.5
 - [ ] Score minimal pour signal : 3.0. Seuil A+ : 4.0
 
-**Validation de phase** : Un script `python -m src.analysis.technical` sur 48h de données XAU/USD détecte au moins 3 OB, 2 FVG, et attribue un score technique cohérent.
+**Validation de phase** : Un script `python -m src.modules.technical` sur 48h de données XAU/USD détecte au moins 3 OB, 2 FVG, et attribue un score technique cohérent.
 
 ---
 
@@ -174,7 +225,7 @@
 **Objectif** : Le bot calcule le score macro spécifique à l'or en temps réel.
 
 ### 3.1 Fetcher Macro
-- [ ] Créer `src/analysis/macro.py`
+- [ ] Créer `src/modules/macro/core.py`
 - [ ] Implémenter `get_dxy_momentum()` — variation M15, tendance H1
 - [ ] Implémenter `get_us10y_value()`
 - [ ] Implémenter `get_tips_10y_value()` (FRED, quotidien)
@@ -214,7 +265,7 @@
 **Objectif** : Le bot mesure le positionnement des marchés.
 
 ### 4.1 COT Report
-- [ ] Créer `src/analysis/sentiment.py`
+- [ ] Créer `src/modules/sentiment/core.py`
 - [ ] Implémenter le téléchargement hebdo du COT (CFTC.gov)
 - [ ] Parser le fichier CSV pour extraire le positionnement Or (Non-Commercials vs Commercials)
 - [ ] Calculer le ratio net long/short
@@ -240,7 +291,7 @@
 **Objectif** : Le bot agrège tous les scores et génère (ou rejette) un signal.
 
 ### 5.1 Formule de Scoring Globale
-- [ ] Créer `src/engine/scoring.py`
+- [ ] Créer `src/modules/fusion/scoring.py`
 - [ ] Implémenter `calculate_total_score(macro, technical, timing)`
 - [ ] Pondération : Macro 30% + Tech 50% + Timing 20%
 - [ ] Retourner le score brut et le score ajusté (si cerveau vectoriel actif)
@@ -252,7 +303,7 @@
 - [ ] Rejeter tout signal < 2.5
 
 ### 5.3 Génération du Plan de Trade
-- [ ] Créer `src/engine/signal.py`
+- [ ] Créer `src/modules/fusion/signal.py`
 - [ ] Implémenter `generate_trade_plan(setup, score, grade)`
 - [ ] Calculer la zone d'entrée exacte (low/high de l'OB)
 - [ ] Calculer le SL (wick + buffer ATR × 0.5, min 15$, max 1% prix)
@@ -278,7 +329,7 @@
 **Objectif** : Le bot valide que le plan respecte toutes les règles de risque.
 
 ### 6.1 Sizing
-- [ ] Créer `src/engine/risk.py`
+- [ ] Créer `src/modules/risk/sizing.py`
 - [ ] Implémenter `calculate_position_size(capital, risk_pct, sl_distance_dollars)`
 - [ ] Grade A+ → risk 1.0%, Grade B → risk 0.5%
 - [ ] Vérifier que la taille en lots est physiquement réalisable
@@ -312,7 +363,7 @@
 **Objectif** : Chaque trade est tracé avec un ID unique, un cycle de vie complet, et un feedback utilisateur.
 
 ### 7.1 Schéma SQLite
-- [ ] Créer `src/storage/database.py`
+- [ ] Créer `src/modules/journal/database.py`
 - [ ] Créer la table `trades` avec les 40+ champs (voir [15 — Module Journal](15-module-journal.md))
 - [ ] Créer la table `signals` pour les signaux non exécutés
 - [ ] Créer les indexes : `idx_trades_date`, `idx_trades_status`, `idx_trades_feedback`, `idx_trades_setup`
@@ -334,7 +385,7 @@
 - [ ] Implémenter `auto_close_feedback(trade_id)` → état AUTO_CLOSED après 7 jours
 
 ### 7.4 Interface de Feedback
-- [ ] Créer `src/storage/journal.py`
+- [ ] Créer `src/modules/journal/queries.py`
 - [ ] Implémenter `get_trades_awaiting_feedback()` — liste FBP
 - [ ] Implémenter `get_trade_by_id(trade_id)`
 - [ ] Implémenter `get_trades_by_setup_type(setup_type)`
@@ -354,13 +405,13 @@
 **Objectif** : Le bot mémorise chaque trade et apprend des similarités.
 
 ### 8.1 Setup ChromaDB
-- [ ] Créer `src/memory/vector_store.py`
+- [ ] Créer `src/modules/vector_brain/store.py`
 - [ ] Initialiser ChromaDB persistant (`./data/chroma_db/`)
 - [ ] Créer la collection `gold_memory`
 - [ ] Configurer la distance (cosine)
 
 ### 8.2 Embedding Engine
-- [ ] Créer `src/memory/embedding.py`
+- [ ] Créer `src/modules/vector_brain/embedding.py`
 - [ ] Charger le modèle `sentence-transformers/all-MiniLM-L6-v2`
 - [ ] Implémenter `generate_embedding(trade_dict)` — texte descriptif → vecteur 384 dims
 - [ ] Alternative : implémenter `generate_embedding_numeric(features_dict)` — features normalisées → vecteur
@@ -373,7 +424,7 @@
 - [ ] Stocker dans ChromaDB avec métadonnées complètes
 
 ### 8.4 Retrieval k-NN
-- [ ] Créer `src/memory/retrieval.py`
+- [ ] Créer `src/modules/vector_brain/retrieval.py`
 - [ ] Implémenter `find_similar_trades(setup_vector, n=5)`
 - [ ] Filtrer : `user_executed = true`, `feedback_status = SUBMITTED`
 - [ ] Retourner : trade_ids, similarités scores, métadonnées
@@ -382,7 +433,7 @@
 - [ ] Implémenter `calculate_adjustment(similar_trades)`
 - [ ] Calculer WR similaire, P&L moyen, similarité moyenne
 - [ ] Règles d'ajustement selon le mode (PASSIF / LÉGER / PLEIN)
-- [ ] Intégrer dans `src/engine/scoring.py` (appel conditionnel)
+- [ ] Intégrer dans `src/modules/fusion/scoring.py` (appel conditionnel)
 
 ### 8.6 Modes d'Activation
 - [ ] Implémenter `get_vector_db_mode(trades_count)`
@@ -404,7 +455,7 @@
 **Objectif** : Le bot communique avec l'utilisateur via Telegram et un dashboard web.
 
 ### 9.1 Bot Telegram
-- [ ] Créer `src/notifications/telegram_bot.py`
+- [ ] Créer `src/modules/notifications/telegram_bot.py`
 - [ ] Initialiser le bot avec le token (depuis `secrets.env`)
 - [ ] Implémenter la réception des commandes : `/status`, `/journal`, `/feedback`, `/note`
 - [ ] Implémenter l'envoi d'alerte de signal (format riche avec boutons)
@@ -413,7 +464,7 @@
 - [ ] Implémenter les rappels automatiques (2h, 24h, 72h)
 
 ### 9.2 Templates d'Alertes
-- [ ] Créer `src/notifications/templates/`
+- [ ] Créer `src/modules/notifications/templates/`
 - [ ] Template `signal_buy.md` / `signal_sell.md`
 - [ ] Template `update_tp1.md`, `update_sl.md`, `trade_closed.md`
 - [ ] Template `feedback_request.md`
@@ -421,7 +472,7 @@
 - [ ] Template `weekly_report.md`
 
 ### 9.3 Dashboard Web (Streamlit)
-- [ ] Créer `src/notifications/dashboard.py`
+- [ ] Créer `src/modules/notifications/dashboard.py`
 - [ ] Page d'accueil : signaux du jour, performance rapide, macro board
 - [ ] Page Signaux : liste filtrable, détail par signal
 - [ ] Page Performance : graphiques de capital, WR par dimension
@@ -439,12 +490,12 @@
 
 ---
 
-## Phase 10 — Agent Rédactur Kimi
+## Phase 10 — Agent Rédacteur Kimi
 
 **Objectif** : Un agent optionnel qui rédige les alertes et rapports via Kimi-k2.6.
 
 ### 10.1 Client Moonshot AI
-- [ ] Créer `src/notifications/writer.py`
+- [ ] Créer `src/modules/notifications/writer.py`
 - [ ] Implémenter le client API Moonshot AI (compatible OpenAI)
 - [ ] Charger la clé API depuis `secrets.env`
 - [ ] Implémenter le timeout (5s max)
@@ -452,7 +503,7 @@
 - [ ] Implémenter le budget max (0.50€/jour)
 
 ### 10.2 Prompts de Rédaction
-- [ ] Créer `src/notifications/prompts/`
+- [ ] Créer `src/modules/notifications/prompts/`
 - [ ] Prompt `alert_signal.md` — JSON technique → message Telegram
 - [ ] Prompt `alert_update.md` — événement de trade → notification
 - [ ] Prompt `daily_report.md` — KPIs → résumé narratif
@@ -473,17 +524,20 @@
 
 **Objectif** : Le système est testé, backtesté, et validé avant mise en production.
 
-### 11.1 Tests Unitaires
-- [ ] Créer `tests/test_macro.py` — scoring macro avec données mockées
-- [ ] Créer `tests/test_technical.py` — détection OB/FVG avec fixtures
-- [ ] Créer `tests/test_scoring.py` — formule de scoring, matrice de décision
-- [ ] Créer `tests/test_risk.py` — sizing, SL, locks, validation
-- [ ] Créer `tests/test_journal.py` — cycle de vie complet d'un trade
-- [ ] Créer `tests/test_memory.py` — vectorisation, retrieval, similarité
+### 11.1 Tests Unitaires par Module
+- [ ] Créer `tests/modules/test_macro.py` — scoring macro avec données mockées
+- [ ] Créer `tests/modules/test_technical.py` — détection OB/FVG avec fixtures
+- [ ] Créer `tests/modules/test_sentiment.py` — parsing COT, ratios
+- [ ] Créer `tests/modules/test_fusion.py` — formule de scoring, matrice de décision
+- [ ] Créer `tests/modules/test_risk.py` — sizing, SL, locks, validation
+- [ ] Créer `tests/modules/test_journal.py` — cycle de vie complet d'un trade
+- [ ] Créer `tests/modules/test_vector_brain.py` — vectorisation, retrieval, similarité
+- [ ] Règle : chaque test de module ne mocke que ses dépendances externes (API), pas les autres modules
 
-### 11.2 Tests d'Intégration
-- [ ] Test `test_full_pipeline.py` — data → tech → macro → scoring → risk → signal
-- [ ] Test `test_event_bus.py` — émission/réception d'événements cross-modules
+### 11.2 Tests d'Intégration (Event Bus)
+- [ ] Test `test_event_bus_isolation.py` — vérifier que les modules ne s'importent pas directement
+- [ ] Test `test_full_pipeline.py` — data → tech → macro → scoring → risk → signal (via bus)
+- [ ] Test `test_event_bus_resilience.py` — un module planté ne bloque pas les autres
 - [ ] Test `test_notification_pipeline.py` — signal → alerte Telegram simulée
 
 ### 11.3 Backtesting Historique
@@ -501,30 +555,33 @@
 - [ ] Vérifier que l'ajustement améliore le score (ou ne le dégrade pas)
 - [ ] Mesurer la latence : < 100ms par requête
 
-### 11.5 Tests de Charge
+### 11.5 Tests de Charge & Résilience
 - [ ] Simuler le scan de 1000 candles M15 en boucle
 - [ ] Mesurer le CPU/RAM usage
 - [ ] Vérifier qu'aucune fuite mémoire ne se produit
+- [ ] Tester la dégradation gracieuse : couper OANDA, vérifier que le bot continue (en mode dégradé)
 
-**Validation de phase** : `pytest tests/` passe à 100%. Le backtest montre un WR > 50% et un PF > 1.3 sur 6 mois.
+**Validation de phase** : `pytest tests/` passe à 100%. Le backtest montre un WR > 50% et un PF > 1.3 sur 6 mois. L'Event Bus isole correctement les modules.
 
 ---
 
 ## Phase 12 — Déploiement & Documentation Technique
 
-**Objectif** : Le projet est packagé, documenté, et prêt à tourner en continu.
+**Objectif** : Le projet est packagé, documenté, et prêt à tourner en continu sur une machine locale.
 
-### 12.1 Packaging
+### 12.1 Packaging (Monolithe)
 - [ ] Créer `requirements.txt` et `requirements-dev.txt`
 - [ ] Vérifier que `pip install -e .` fonctionne sur une machine vierge
-- [ ] Créer un script `run.sh` / `run.bat` pour lancer le bot
+- [ ] Créer un script `run.sh` / `run.bat` pour lancer le bot (un seul processus)
 - [ ] Créer un script `setup.sh` pour l'installation initiale
+- [ ] **Pas de Docker, pas de docker-compose, pas de Kubernetes** — déploiement monolithique local
 
 ### 12.2 Documentation Technique
-- [ ] Rédiger `docs/API.md` — interfaces publiques de chaque module
+- [ ] Rédiger `docs/API.md` — interfaces publiques de chaque module (via Event Bus)
 - [ ] Rédiger `docs/DATABASE.md` — schéma SQL complet, requêtes exemples
 - [ ] Rédiger `docs/DEPLOYMENT.md` — installation, configuration, lancement
 - [ ] Rédiger `docs/TROUBLESHOOTING.md` — problèmes courants et solutions
+- [ ] Rédiger `docs/ARCHITECTURE.md` — diagramme de l'Event Bus et des modules
 
 ### 12.3 CI/CD (Optionnel)
 - [ ] Créer `.github/workflows/tests.yml` — exécute pytest à chaque push
@@ -533,8 +590,9 @@
 ### 12.4 Configuration Production
 - [ ] Créer `config/settings.prod.yaml`
 - [ ] Vérifier que le bot tourne 24/5 sans intervention
-- [ ] Implémenter le redémarrage automatique en cas de crash (supervisor, systemd, ou boucle interne)
-- [ ] Implémenter la sauvegarde automatique de la base SQLite (copie quotidienne)
+- [ ] Implémenter le redémarrage automatique en cas de crash (boucle interne dans `main.py`, pas de systemd obligatoire)
+- [ ] Implémenter la sauvegarde automatique de la base SQLite (copie quotidienne dans `data/backups/`)
+- [ ] Vérifier que ChromaDB persiste correctement entre les redémarrages
 
 **Validation de phase** : Une personne tierce clone le repo, suit `docs/DEPLOYMENT.md`, et fait tourner le bot en 15 minutes.
 
