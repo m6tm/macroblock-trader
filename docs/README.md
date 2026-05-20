@@ -28,6 +28,7 @@
 | 16 | [Cerveau Vectoriel](16-cerveau-vectoriel.md) | Mémoire vectorielle statistique (ChromaDB), apprentissage par similarité |
 | 17 | [Architecture Intelligence](17-architecture-intelligence.md) | Positionnement de l'IA : modules classiques + mémoire vectorielle + Kimi rédacteur optionnel |
 | 18 | [Plan d'Implémentation Atomique](18-plan-implementation.md) | Phases et sous-phases de développement, découpage atomique sans notion de temps |
+| 19 | [Classification Architecturale](19-classification-architecturale.md) | Taxonomies et patterns architecturaux du projet |
 
 ---
 
