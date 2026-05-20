@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from loguru import logger
 
+from data.compat import make_ohlcv_data, OHLCVData
+
 
 class OHLCVNormalizer:
     """Normalise un lot de candles brutes en format interne standard."""
@@ -21,8 +23,8 @@ class OHLCVNormalizer:
         candles: List[Dict[str, Any]],
         pair: str,
         timeframe: str,
-    ) -> List[Dict[str, Any]]:
-        """Retourne une liste de dicts normalises.
+    ) -> OHLCVData:
+        """Retourne un OHLCVData normalise (DataFrame pandas si disponible, sinon list[dict]).
 
         Champs garantis : timestamp (ISO UTC), open, high, low, close, volume, pair, timeframe
         """
@@ -59,11 +61,11 @@ class OHLCVNormalizer:
 
         # Tri chronologique
         normalized.sort(key=lambda x: x["timestamp"])
-        return normalized
+        return make_ohlcv_data(normalized, pair, timeframe)
 
     @staticmethod
     def check_gaps(
-        candles: List[Dict[str, Any]],
+        data: OHLCVData,
         timeframe: str,
         max_gap_minutes: Optional[int] = None,
     ) -> List[Tuple[str, str]]:
@@ -75,13 +77,21 @@ class OHLCVNormalizer:
         gap_map = {"M5": 5, "M15": 15, "H1": 60, "H4": 240}
         expected_min = max_gap_minutes or gap_map.get(timeframe, 5)
         gaps: List[Tuple[str, str]] = []
+        rows = data.rows()
 
-        for i in range(1, len(candles)):
-            t1 = datetime.fromisoformat(candles[i - 1]["timestamp"].replace("Z", "+00:00"))
-            t2 = datetime.fromisoformat(candles[i]["timestamp"].replace("Z", "+00:00"))
+        for i in range(1, len(rows)):
+            ts1 = rows[i - 1]["timestamp"]
+            ts2 = rows[i]["timestamp"]
+            # Support str ISO, datetime, ou pandas Timestamp
+            if isinstance(ts1, str):
+                t1 = datetime.fromisoformat(ts1.replace("Z", "+00:00"))
+                t2 = datetime.fromisoformat(ts2.replace("Z", "+00:00"))
+            else:
+                t1 = ts1.to_pydatetime() if hasattr(ts1, "to_pydatetime") else ts1
+                t2 = ts2.to_pydatetime() if hasattr(ts2, "to_pydatetime") else ts2
             delta_min = (t2 - t1).total_seconds() / 60
             if delta_min > expected_min * 1.5:  # tolerance 50%
-                gaps.append((candles[i - 1]["timestamp"], candles[i]["timestamp"]))
+                gaps.append((str(ts1), str(ts2)))
 
         if gaps:
             logger.warning(f"{len(gaps)} gap(s) detecte(s) sur {timeframe}")
@@ -91,11 +101,11 @@ class OHLCVNormalizer:
 class DataStore:
     """Cache en memoire des donnees de marche par paire/timeframe.
 
-    Structure interne : { (pair, timeframe) : [candle, candle, ...] }
+    Structure interne : { (pair, timeframe) : OHLCVData }
     """
 
     def __init__(self) -> None:
-        self._store: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+        self._store: Dict[Tuple[str, str], OHLCVData] = {}
         self._normalizer = OHLCVNormalizer()
 
     def ingest(
@@ -113,20 +123,25 @@ class DataStore:
     def get_latest(self, pair: str, timeframe: str) -> Optional[Dict[str, Any]]:
         """Retourne la derniere candle disponible."""
         key = (pair, timeframe)
-        data = self._store.get(key, [])
-        return data[-1] if data else None
+        data = self._store.get(key)
+        if data is None:
+            return None
+        rows = data.rows()
+        return rows[-1] if rows else None
 
     def get_historical(
         self, pair: str, timeframe: str, bars: int
-    ) -> List[Dict[str, Any]]:
+    ) -> OHLCVData:
         """Retourne les N dernieres candles."""
         key = (pair, timeframe)
-        data = self._store.get(key, [])
-        return data[-bars:] if data else []
+        data = self._store.get(key)
+        if data is None:
+            return make_ohlcv_data([], pair, timeframe)
+        return data.tail(bars)
 
-    def get_all(self, pair: str, timeframe: str) -> List[Dict[str, Any]]:
+    def get_all(self, pair: str, timeframe: str) -> OHLCVData:
         """Retourne toutes les candles stockees."""
-        return self._store.get((pair, timeframe), [])
+        return self._store.get((pair, timeframe), make_ohlcv_data([], pair, timeframe))
 
     def check_gaps(self, pair: str, timeframe: str) -> List[Tuple[str, str]]:
         """Verifie les gaps pour une paire/timeframe donnee."""

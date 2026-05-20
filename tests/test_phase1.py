@@ -10,6 +10,7 @@ from data.calendar import EconomicCalendar, EconomicEvent
 from data.oanda_client import OandaClient, GRANULARITY_MAP
 from data.fetcher import DataFetcher
 from data.screenshot import capture_chart, _has_matplotlib
+from data.compat import has_pandas, make_ohlcv_data
 
 
 def test_granularity_map() -> None:
@@ -30,11 +31,12 @@ def test_normalizer_basic() -> None:
         {"time": "2024-01-01T10:05:00Z", "open": 2000.5, "high": 2002.0, "low": 2000.0, "close": 2001.5, "volume": 150},
     ]
     norm = OHLCVNormalizer.normalize(raw, "XAU/USD", "M5")
-    assert len(norm) == 2
-    assert norm[0]["open"] == 2000.0
-    assert norm[0]["pair"] == "XAU/USD"
-    assert norm[0]["timeframe"] == "M5"
-    assert isinstance(norm[0]["volume"], int)
+    rows = norm.rows()
+    assert len(rows) == 2
+    assert rows[0]["open"] == 2000.0
+    assert rows[0]["pair"] == "XAU/USD"
+    assert rows[0]["timeframe"] == "M5"
+    assert isinstance(rows[0]["volume"], int)
 
 
 def test_normalizer_gaps() -> None:
@@ -95,7 +97,7 @@ def test_fetcher_without_api_key() -> None:
     fetcher = DataFetcher()
     # Sans cle API, les appels OANDA retournent vide mais ne plantent pas
     data = fetcher.fetch_xauusd_m5(count=5)
-    assert isinstance(data, list)
+    assert len(data) == 0
 
 
 def test_screenshot_without_matplotlib() -> None:

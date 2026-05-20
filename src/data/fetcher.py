@@ -13,6 +13,7 @@ from loguru import logger
 from core.config import Settings
 from core.exceptions import DataFetchError
 from core.resilience import safe_call
+from data.compat import make_ohlcv_data, OHLCVData
 from data.oanda_client import OandaClient
 
 
@@ -33,7 +34,7 @@ class DataFetcher:
     # ------------------------------------------------------------------
     def fetch_xauusd(
         self, timeframe: str, count: int = 500
-    ) -> List[Dict[str, Any]]:
+    ) -> OHLCVData:
         """Recupere les candles XAU/USD pour un timeframe donne.
 
         Args:
@@ -41,53 +42,59 @@ class DataFetcher:
             count: nombre de candles
 
         Returns:
-            Liste de dicts {time, open, high, low, close, volume, complete}
+            OHLCVData (DataFrame pandas si disponible, sinon list[dict])
         """
         instrument = _instrument_to_oanda(self.settings.trading.asset)
         try:
-            return self.oanda.get_candles(instrument, timeframe, count)
+            raw = self.oanda.get_candles(instrument, timeframe, count)
+            return make_ohlcv_data(raw, self.settings.trading.asset, timeframe)
         except DataFetchError:
             logger.error(f"Echec recuperation {instrument} {timeframe}")
-            return []
+            return make_ohlcv_data([], self.settings.trading.asset, timeframe)
 
-    def fetch_xauusd_m5(self, count: int = 500) -> List[Dict[str, Any]]:
+    def fetch_xauusd_m5(self, count: int = 500) -> OHLCVData:
         return self.fetch_xauusd("M5", count)
 
-    def fetch_xauusd_m15(self, count: int = 500) -> List[Dict[str, Any]]:
+    def fetch_xauusd_m15(self, count: int = 500) -> OHLCVData:
         return self.fetch_xauusd("M15", count)
 
-    def fetch_xauusd_h1(self, count: int = 200) -> List[Dict[str, Any]]:
+    def fetch_xauusd_h1(self, count: int = 200) -> OHLCVData:
         return self.fetch_xauusd("H1", count)
 
-    def fetch_xauusd_h4(self, count: int = 100) -> List[Dict[str, Any]]:
+    def fetch_xauusd_h4(self, count: int = 100) -> OHLCVData:
         return self.fetch_xauusd("H4", count)
 
     # ------------------------------------------------------------------
     # 1.3 Contexte marche
     # ------------------------------------------------------------------
-    def fetch_dxy_m15(self, count: int = 100) -> List[Dict[str, Any]]:
+    def fetch_dxy_m15(self, count: int = 100) -> OHLCVData:
         """Dollar Index — via OANDA (pas de DXY natif, on utilise USD_Index ou yfinance)."""
         try:
-            return self.oanda.get_candles("USD_Index", "M15", count)
+            raw = self.oanda.get_candles("USD_Index", "M15", count)
+            return make_ohlcv_data(raw, "DXY", "M15")
         except DataFetchError:
             logger.warning("DXY non disponible via OANDA — retour vide")
-            return []
+            return make_ohlcv_data([], "DXY", "M15")
 
-    def fetch_vix_m15(self, count: int = 100) -> List[Dict[str, Any]]:
+    def fetch_vix_m15(self, count: int = 100) -> OHLCVData:
         """VIX — non disponible sur OANDA Forex, tentative yfinance."""
-        return safe_call(self._fetch_yfinance, "^VIX", "15m", count, default_return=[])
+        raw = safe_call(self._fetch_yfinance, "^VIX", "15m", count, default_return=[])
+        return make_ohlcv_data(raw, "VIX", "M15")
 
-    def fetch_sp500(self, count: int = 100) -> List[Dict[str, Any]]:
+    def fetch_sp500(self, count: int = 100) -> OHLCVData:
         """S&P 500 — via yfinance."""
-        return safe_call(self._fetch_yfinance, "^GSPC", "1h", count, default_return=[])
+        raw = safe_call(self._fetch_yfinance, "^GSPC", "1h", count, default_return=[])
+        return make_ohlcv_data(raw, "SP500", "H1")
 
-    def fetch_us10y(self, count: int = 30) -> List[Dict[str, Any]]:
+    def fetch_us10y(self, count: int = 30) -> OHLCVData:
         """US 10Y Treasury Yield — via yfinance (^TNX) ou FRED."""
-        return safe_call(self._fetch_yfinance, "^TNX", "1d", count, default_return=[])
+        raw = safe_call(self._fetch_yfinance, "^TNX", "1d", count, default_return=[])
+        return make_ohlcv_data(raw, "US10Y", "D1")
 
-    def fetch_tips_10y(self, count: int = 30) -> List[Dict[str, Any]]:
+    def fetch_tips_10y(self, count: int = 30) -> OHLCVData:
         """TIPS 10Y Real Yield — via FRED (DFII10)."""
-        return safe_call(self._fetch_fred, "DFII10", count, default_return=[])
+        raw = safe_call(self._fetch_fred, "DFII10", count, default_return=[])
+        return make_ohlcv_data(raw, "TIPS10Y", "D1")
 
     # ------------------------------------------------------------------
     # Helpers contexte
