@@ -36,8 +36,8 @@ class EventType(Enum):
 class Event:
     """Classe de base pour tous les événements du bus."""
 
-    event_type: EventType
-    payload: Dict[str, Any]
+    event_type: EventType = EventType.MARKET_DATA
+    payload: Dict[str, Any] = field(default_factory=dict)
     source_module: str = "unknown"
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     event_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])

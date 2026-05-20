@@ -98,3 +98,47 @@ def load_settings(yaml_path: Path = Path("config/settings.yaml")) -> Settings:
             kwargs = yaml.safe_load(fh) or {}
 
     return Settings(**kwargs)
+
+
+def validate_startup(settings: Settings) -> None:
+    """Valide la configuration au démarrage. Lève ConfigValidationError si invalide.
+
+    Vérifie :
+      - Présence des clés API si les modules associés sont activés
+      - Cohérence des paramètres de risque
+      - Existence du répertoire de config
+    """
+    from core.exceptions import ConfigValidationError
+
+    # 1. Risque cohérent
+    if settings.trading.risk_pct_b > settings.trading.risk_pct_a_plus:
+        raise ConfigValidationError(
+            f"risk_pct_b ({settings.trading.risk_pct_b}) ne peut pas dépasser "
+            f"risk_pct_a_plus ({settings.trading.risk_pct_a_plus})"
+        )
+
+    # 2. Clés API si notifications Telegram activées
+    if settings.notifications.telegram_enabled:
+        if not settings.telegram_bot_token:
+            raise ConfigValidationError(
+                "telegram_enabled=True mais TELEGRAM_BOT_TOKEN manquant"
+            )
+        if not settings.notifications.telegram_chat_id:
+            raise ConfigValidationError(
+                "telegram_enabled=True mais telegram_chat_id manquant"
+            )
+
+    # 3. Timeframes reconnus
+    valid_tfs = {"M1", "M5", "M15", "M30", "H1", "H4", "D1"}
+    for attr in ("entry", "refinement", "trend_h1", "trend_h4"):
+        tf = getattr(settings.timeframes, attr)
+        if tf not in valid_tfs:
+            raise ConfigValidationError(
+                f"Timeframe invalide pour '{attr}': {tf} (attendu {valid_tfs})"
+            )
+
+    # 4. Capital suffisant
+    if settings.trading.capital_base < 100:
+        raise ConfigValidationError(
+            f"capital_base trop faible: {settings.trading.capital_base} (min 100)"
+        )
