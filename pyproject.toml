@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "macroblock-trader"
+version = "0.1.0"
+description = "Système automatisé d'analyse et de génération de signaux XAU/USD (Or) — Paper Trading"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Trader", email = "trader@example.com"}
+]
+keywords = ["trading", "forex", "gold", "xauusd", "smc", "paper-trading"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "loguru>=0.7",
+    "httpx>=0.25",
+    "pyyaml>=6.0",
+    "oandapyV20>=0.7",
+    "yfinance>=0.2",
+    "chromadb>=0.4",
+    "sentence-transformers>=2.2",
+    "python-telegram-bot>=20.0",
+    "streamlit>=1.28",
+    "jinja2>=3.1",
+    "plotly>=5.18",
+    "lightweight-charts>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1",
+    "mypy>=1.7",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true

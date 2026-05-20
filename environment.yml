@@ -1,0 +1,26 @@
+name: macroblock
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - pandas
+  - pyyaml
+  - pydantic>=2.0
+  - pydantic-settings
+  - loguru
+  - httpx
+  - pytest
+  - pytest-asyncio
+  - pip:
+    - oandapyV20
+    - yfinance
+    - chromadb
+    - sentence-transformers
+    - python-telegram-bot>=20.0
+    - streamlit
+    - jinja2
+    - plotly
+    - lightweight-charts
