@@ -26,7 +26,8 @@
 | 14 | [Annexe — Matrice de Décision](14-annexe-matrice-decision.md) | Tableau récapitulatif des conditions de trading |
 | 15 | [Module Journal](15-module-journal.md) | Journal de trading structuré avec Trade ID unique |
 | 16 | [Cerveau Vectoriel](16-cerveau-vectoriel.md) | Mémoire vectorielle statistique (ChromaDB), apprentissage par similarité |
-| 17 | [Architecture Intelligence](17-architecture-intelligence.md) | Positionnement de l'IA : modules classiques + mémoire vectorielle + LLM rédacteur optionnel |
+| 17 | [Architecture Intelligence](17-architecture-intelligence.md) | Positionnement de l'IA : modules classiques + mémoire vectorielle + Kimi rédacteur optionnel |
+| 18 | [Plan d'Implémentation Atomique](18-plan-implementation.md) | Phases et sous-phases de développement, découpage atomique sans notion de temps |
 
 ---
 
