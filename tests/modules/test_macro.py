@@ -181,11 +181,17 @@ def test_lock_dxy_spike() -> None:
 def test_no_lock_normal_conditions() -> None:
     """Sans evenements ni spikes, aucun lock."""
     from unittest.mock import patch
+    from datetime import datetime, timezone
 
     detector = MacroLockDetector()
+    # Geler le temps en dehors de toute periode de lock (02:00 UTC)
+    frozen = datetime(2024, 1, 15, 2, 0, 0, tzinfo=timezone.utc)
     with patch.object(detector.calendar, "get_high_impact_events", return_value=[]):
-        locks = detector.get_active_locks(dxy_change_pct=0.05, yield_change_bps=0.01)
-        assert len(locks) == 0
+        with patch("modules.macro.locks.datetime") as mock_dt:
+            mock_dt.now.return_value = frozen
+            mock_dt.side_effect = datetime
+            locks = detector.get_active_locks(dxy_change_pct=0.05, yield_change_bps=0.01)
+            assert len(locks) == 0
 
 
 def test_lock_list_contains_reasons() -> None:
