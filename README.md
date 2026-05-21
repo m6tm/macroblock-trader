@@ -8,20 +8,32 @@ Système automatisé d'analyse et de génération de signaux de trading sur l'Or
 
 ## Installation
 
-### Avec Conda (recommandé)
+### Avec Conda (recommandé — Linux/macOS/Windows)
 
 ```bash
+# Methode 1 : script automatique
+bash setup_conda.sh
+
+# Methode 2 : manuel
 conda env create -f environment.yml
 conda activate macroblock
-```
-
-### Avec venv + pip
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows : venv\Scripts\activate
 pip install -e ".[dev]"
 ```
+
+### Avec venv + pip (Termux/Android, ou sans Conda)
+
+```bash
+# Methode 1 : script automatique
+bash setup.sh
+
+# Methode 2 : manuel
+python -m venv venv --system-site-packages
+source venv/bin/activate  # Windows : venv\Scripts\activate
+pip install --upgrade pip
+pip install -e ".[dev]"
+```
+
+> **Note Termux** : Conda n'est pas nativement supporté sur Android/Termux. Utilisez la méthode `venv` ci-dessus.
 
 ---
 
@@ -40,14 +52,44 @@ pip install -e ".[dev]"
    - `FRED_API_KEY` — Clé API FRED (optionnel)
    - `MOONSHOT_API_KEY` — Clé API Moonshot AI (optionnel)
 
-3. Ajuster `config/settings.yaml` selon vos préférences (capital, risque, killzones...).
+3. Ajuster `config/settings.yaml` selon vos préférences (risque, killzones...).
 
 ---
 
 ## Lancement
 
 ```bash
+# Avec l'environnement active
 python src/main.py
+```
+
+---
+
+## Validation par phase
+
+```bash
+# Phase 0 — Fondation
+python tests/test_phase0.py
+
+# Phase 1 — Données
+python tests/test_phase1.py
+
+# Phase 2 — Technique SMC
+python tests/modules/test_technical.py
+
+# Phase 3 — Macro
+python tests/modules/test_macro.py
+
+# Phase 4 — Sentiment
+python tests/modules/test_sentiment.py
+
+# Phase 5 — Fusion
+python tests/modules/test_fusion.py
+
+# Tests d'intégration (e2e)
+python tests/integration/test_event_bus.py
+python tests/integration/test_data_pipeline.py
+python tests/integration/test_modules_pipeline.py
 ```
 
 ---
@@ -70,13 +112,17 @@ python src/main.py
 │   │   ├── sentiment/   # COT, retail ratios, fear/greed
 │   │   ├── technical/   # Détection OB, FVG, BOS, liquidité
 │   │   ├── fusion/      # Moteur de scoring et génération de signaux
-│   │   ├── risk/        # Gestion du risque, sizing, locks
+│   │   ├── risk/        # Gestion du risque, sizing, locks (retourné par l'utilisateur)
 │   │   ├── journal/     # SQLite, cycle de vie des trades
 │   │   ├── vector_brain/# Mémoire vectorielle, retrieval, ajustement
 │   │   └── notifications/ # Telegram, dashboard Streamlit
 │   ├── storage/         # Repositories SQLite
 │   └── main.py          # Point d'entrée unique
 └── tests/               # Tests unitaires et d'intégration
+    ├── integration/     # Tests e2e (Event Bus, Data, Modules Pipeline)
+    ├── modules/         # Tests unitaires par module
+    ├── test_phase0.py   # Validation Phase 0
+    └── test_phase1.py   # Validation Phase 1
 ```
 
 ---
@@ -84,7 +130,16 @@ python src/main.py
 ## 🧪 Tests
 
 ```bash
-pytest tests/
+# Tous les tests
+python tests/test_phase0.py
+python tests/test_phase1.py
+python tests/modules/test_technical.py
+python tests/modules/test_macro.py
+python tests/modules/test_sentiment.py
+python tests/modules/test_fusion.py
+python tests/integration/test_event_bus.py
+python tests/integration/test_data_pipeline.py
+python tests/integration/test_modules_pipeline.py
 ```
 
 ---
