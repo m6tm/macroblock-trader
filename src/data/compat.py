@@ -94,9 +94,18 @@ def make_ohlcv_data(
     """
     if _HAS_PANDAS and records:
         df = pd.DataFrame(records)
-        # Convertit le timestamp en datetime index si present
+        # Normalise la colonne temps
+        if "time" in df.columns and "timestamp" not in df.columns:
+            df = df.rename(columns={"time": "timestamp"})
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
             df = df.sort_values("timestamp").reset_index(drop=True)
         return OHLCVData(df, pair, timeframe)
-    return OHLCVData(records, pair, timeframe)
+    # Sans pandas : normalise la cle 'time' en 'timestamp'
+    normalized = []
+    for row in records:
+        new_row = dict(row)
+        if "time" in new_row and "timestamp" not in new_row:
+            new_row["timestamp"] = new_row.pop("time")
+        normalized.append(new_row)
+    return OHLCVData(normalized, pair, timeframe)

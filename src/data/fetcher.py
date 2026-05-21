@@ -6,6 +6,14 @@ Contexte (DXY, VIX, yields) : yfinance ou FRED (fallback degrade)
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Permet le lancement avec `python -m src.data.fetcher`
+_src_root = Path(__file__).resolve().parent.parent
+if str(_src_root) not in sys.path:
+    sys.path.insert(0, str(_src_root))
+
 from typing import Any, Dict, List, Optional
 
 from loguru import logger
@@ -14,6 +22,7 @@ from core.config import Settings
 from core.exceptions import DataFetchError
 from core.resilience import safe_call
 from data.compat import make_ohlcv_data, OHLCVData
+from data.normalizer import OHLCVNormalizer
 from data.oanda_client import OandaClient
 
 
@@ -25,9 +34,14 @@ def _instrument_to_oanda(pair: str) -> str:
 class DataFetcher:
     """Orchestre la recuperation de toutes les donnees necessaires."""
 
-    def __init__(self, settings: Optional[Settings] = None) -> None:
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        store: Optional[Any] = None,
+    ) -> None:
         self.settings = settings or Settings()
         self.oanda = OandaClient.from_settings(self.settings)
+        self.store = store
 
     # ------------------------------------------------------------------
     # 1.2 XAU/USD via OANDA
@@ -47,10 +61,23 @@ class DataFetcher:
         instrument = _instrument_to_oanda(self.settings.trading.asset)
         try:
             raw = self.oanda.get_candles(instrument, timeframe, count)
-            return make_ohlcv_data(raw, self.settings.trading.asset, timeframe)
+            data = make_ohlcv_data(raw, self.settings.trading.asset, timeframe)
         except DataFetchError:
             logger.error(f"Echec recuperation {instrument} {timeframe}")
-            return make_ohlcv_data([], self.settings.trading.asset, timeframe)
+            data = make_ohlcv_data([], self.settings.trading.asset, timeframe)
+            raw = []
+
+        # Stockage dans le DataStore si disponible
+        if self.store is not None and raw:
+            self.store.ingest(self.settings.trading.asset, timeframe, raw)
+
+        # Verification automatique des gaps en M5
+        if timeframe == "M5" and len(data) > 1:
+            gaps = OHLCVNormalizer.check_gaps(data, "M5")
+            if gaps:
+                logger.warning(f"Fetcher M5 — {len(gaps)} gap(s) detecte(s)")
+
+        return data
 
     def fetch_xauusd_m5(self, count: int = 500) -> OHLCVData:
         return self.fetch_xauusd("M5", count)
@@ -173,7 +200,10 @@ if __name__ == "__main__":
     from core.logger import setup_logging
 
     setup_logging()
-    fetcher = DataFetcher()
+    from data.normalizer import DataStore
+
+    store = DataStore()
+    fetcher = DataFetcher(store=store)
 
     logger.info("=== Validation Phase 1 — Fetcher ===")
 
@@ -186,4 +216,6 @@ if __name__ == "__main__":
     logger.info(f"US10Y: {len(fetcher.fetch_us10y(5))} points")
     logger.info(f"TIPS10Y: {len(fetcher.fetch_tips_10y(5))} points")
 
+    summary = store.summary()
+    logger.info(f"DataStore summary: {summary}")
     logger.success("Validation Phase 1 terminee")

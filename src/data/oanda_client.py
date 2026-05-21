@@ -140,7 +140,8 @@ class OandaClient:
 
         candles = data.get("candles", [])
         parsed: List[Dict[str, Any]] = []
-        price_key = price.lower()
+        price_key_map = {"M": "mid", "B": "bid", "A": "ask"}
+        price_key = price_key_map.get(price, price.lower())
 
         for c in candles:
             parsed.append(
