@@ -177,44 +177,44 @@ src/
 **Objectif** : Le bot détecte automatiquement les setups SMC sur XAU/USD.
 
 ### 2.1 Structure de Marché
-- [ ] Créer `src/modules/technical/core.py`
-- [ ] Implémenter `detect_swing_highs_lows(df, lookback)`
-- [ ] Implémenter `detect_bos(df, direction)` — Break of Structure
-- [ ] Implémenter `detect_choch(df, direction)` — Change of Character
-- [ ] Implémenter `get_trend_h4()` / `get_trend_h1()` (BULLISH / BEARISH / NEUTRAL)
-- [ ] Écrire les tests avec des fixtures de données connues
+- [x] Créer `src/modules/technical/core.py`
+- [x] Implémenter `detect_swing_highs_lows(df, lookback)`
+- [x] Implémenter `detect_bos(df, direction)` — Break of Structure
+- [x] Implémenter `detect_choch(df, direction)` — Change of Character
+- [x] Implémenter `get_trend_h4()` / `get_trend_h1()` (BULLISH / BEARISH / NEUTRAL)
+- [x] Écrire les tests avec des fixtures de données connues
 
 ### 2.2 Détection des Order Blocks
-- [ ] Implémenter `detect_bullish_ob(df, impulsion_threshold)`
-- [ ] Implémenter `detect_bearish_ob(df, impulsion_threshold)`
-- [ ] Calculer la fraîcheur de l'OB (jamais mitigué / première mitigation / mitigué)
-- [ ] Accepter la mitigation à 50% pour l'or
-- [ ] Retourner la zone exacte : `[ob_low, ob_high]`
-- [ ] Écrire les tests avec des cas réels de charts XAU/USD
+- [x] Implémenter `detect_bullish_ob(df, impulsion_threshold)`
+- [x] Implémenter `detect_bearish_ob(df, impulsion_threshold)`
+- [x] Calculer la fraîcheur de l'OB (jamais mitigué / première mitigation / mitigué)
+- [x] Accepter la mitigation à 50% pour l'or
+- [x] Retourner la zone exacte : `[ob_low, ob_high]`
+- [x] Écrire les tests avec des cas réels de charts XAU/USD
 
 ### 2.3 Détection des Fair Value Gaps
-- [ ] Implémenter `detect_bullish_fvg(df)` — Low(N+2) > High(N)
-- [ ] Implémenter `detect_bearish_fvg(df)` — High(N+2) < Low(N)
-- [ ] Vérifier la confluence avec un OB (distance entre les zones < seuil)
-- [ ] Retourner la zone FVG : `[fvg_low, fvg_high]`
+- [x] Implémenter `detect_bullish_fvg(df)` — Low(N+2) > High(N)
+- [x] Implémenter `detect_bearish_fvg(df)` — High(N+2) < Low(N)
+- [x] Vérifier la confluence avec un OB (distance entre les zones < seuil)
+- [x] Retourner la zone FVG : `[fvg_low, fvg_high]`
 
 ### 2.4 Détection des Liquidité Pools
-- [ ] Implémenter `detect_equal_highs(df, tolerance)`
-- [ ] Implémenter `detect_equal_lows(df, tolerance)`
-- [ ] Implémenter `detect_psychological_levels(price)` — niveaux xx00, xx50
-- [ ] Implémenter `detect_previous_session_levels(df)` — day high/low, week high/low
-- [ ] Implémenter `detect_trendline_liquidity(df)` (optionnel, version 2)
+- [x] Implémenter `detect_equal_highs(df, tolerance)`
+- [x] Implémenter `detect_equal_lows(df, tolerance)`
+- [x] Implémenter `detect_psychological_levels(price)` — niveaux xx00, xx50
+- [x] Implémenter `detect_previous_session_levels(df)` — day high/low, week high/low
+- [x] Implémenter `detect_trendline_liquidity(df)` (optionnel, version 2)
 
 ### 2.5 Scoring Technique
-- [ ] Implémenter `score_structure(setup)` — H4/H1 alignés ?
-- [ ] Implémenter `score_bos(setup)` — BOS M15 confirmé ?
-- [ ] Implémenter `score_ob(setup)` — fraîcheur, timeframe
-- [ ] Implémenter `score_fvg(setup)` — confluence ?
-- [ ] Implémenter `score_liquidity(setup)` — cible claire ?
-- [ ] Implémenter `score_killzone(setup)` — Fix AM/PM / COMEX ?
-- [ ] Implémenter `score_dxy_alignment(setup, dxy_trend)` — bonus spécifique Or
-- [ ] Implémenter `calculate_technical_score(setup)` — agrégation 0 à 5.5
-- [ ] Score minimal pour signal : 3.0. Seuil A+ : 4.0
+- [x] Implémenter `score_structure(setup)` — H4/H1 alignés ?
+- [x] Implémenter `score_bos(setup)` — BOS M15 confirmé ?
+- [x] Implémenter `score_ob(setup)` — fraîcheur, timeframe
+- [x] Implémenter `score_fvg(setup)` — confluence ?
+- [x] Implémenter `score_liquidity(setup)` — cible claire ?
+- [x] Implémenter `score_killzone(setup)` — Fix AM/PM / COMEX ?
+- [x] Implémenter `score_dxy_alignment(setup, dxy_trend)` — bonus spécifique Or
+- [x] Implémenter `calculate_technical_score(setup)` — agrégation 0 à 5.5
+- [x] Score minimal pour signal : 3.0. Seuil A+ : 4.0
 
 **Validation de phase** : Un script `python -m src.modules.technical` sur 48h de données XAU/USD détecte au moins 3 OB, 2 FVG, et attribue un score technique cohérent.
 
