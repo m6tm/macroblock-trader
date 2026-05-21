@@ -1,7 +1,8 @@
 """Couche de recuperation des donnees de marche.
 
-XAU/USD : OANDA
-Contexte (DXY, VIX, yields) : yfinance ou FRED (fallback degrade)
+XAU/USD : OANDA (temps reel)
+Contexte macro : OANDA via proxy EUR/USD (DXY), FRED (yields) si cle disponible.
+Yahoo Finance retire — source differee et inoperante sur Termux.
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ class DataFetcher:
         self.store = store
 
     # ------------------------------------------------------------------
-    # 1.2 XAU/USD via OANDA
+    # 1.2 XAU/USD via OANDA (temps reel)
     # ------------------------------------------------------------------
     def fetch_xauusd(
         self, timeframe: str, count: int = 500
@@ -92,31 +93,26 @@ class DataFetcher:
         return self.fetch_xauusd("H4", count)
 
     # ------------------------------------------------------------------
-    # 1.3 Contexte marche
+    # 1.3 Contexte marche (proxy OANDA + FRED)
     # ------------------------------------------------------------------
     def fetch_dxy_m15(self, count: int = 100) -> OHLCVData:
-        """Dollar Index — via OANDA (pas de DXY natif, on utilise USD_Index ou yfinance)."""
+        """Dollar Index — proxy via EUR/USD sur OANDA (correlation inverse ~-0.90).
+
+        EUR/USD monte  => USD baisse => DXY baisse => Or haussier
+        EUR/USD baisse => USD monte  => DXY monte  => Or baissier
+        """
         try:
-            raw = self.oanda.get_candles("USD_Index", "M15", count)
-            return make_ohlcv_data(raw, "DXY", "M15")
+            raw = self.oanda.get_candles("EUR_USD", "M15", count)
+            data = make_ohlcv_data(raw, "DXY-PROXY", "M15")
         except DataFetchError:
-            logger.warning("DXY non disponible via OANDA — retour vide")
-            return make_ohlcv_data([], "DXY", "M15")
+            logger.warning("DXY proxy (EUR/USD) non disponible — retour vide")
+            data = make_ohlcv_data([], "DXY-PROXY", "M15")
+            raw = []
 
-    def fetch_vix_m15(self, count: int = 100) -> OHLCVData:
-        """VIX — non disponible sur OANDA Forex, tentative yfinance."""
-        raw = safe_call(self._fetch_yfinance, "^VIX", "15m", count, default_return=[])
-        return make_ohlcv_data(raw, "VIX", "M15")
+        if self.store is not None and raw:
+            self.store.ingest("DXY-PROXY", "M15", raw)
 
-    def fetch_sp500(self, count: int = 100) -> OHLCVData:
-        """S&P 500 — via yfinance."""
-        raw = safe_call(self._fetch_yfinance, "^GSPC", "1h", count, default_return=[])
-        return make_ohlcv_data(raw, "SP500", "H1")
-
-    def fetch_us10y(self, count: int = 30) -> OHLCVData:
-        """US 10Y Treasury Yield — via yfinance (^TNX) ou FRED."""
-        raw = safe_call(self._fetch_yfinance, "^TNX", "1d", count, default_return=[])
-        return make_ohlcv_data(raw, "US10Y", "D1")
+        return data
 
     def fetch_tips_10y(self, count: int = 30) -> OHLCVData:
         """TIPS 10Y Real Yield — via FRED (DFII10)."""
@@ -126,35 +122,6 @@ class DataFetcher:
     # ------------------------------------------------------------------
     # Helpers contexte
     # ------------------------------------------------------------------
-    def _fetch_yfinance(
-        self, ticker: str, interval: str, period_days: int
-    ) -> List[Dict[str, Any]]:
-        """Recupere des donnees via yfinance."""
-        try:
-            import yfinance as yf
-        except ImportError:
-            logger.warning("yfinance non installe — donnees marche indisponibles")
-            return []
-
-        t = yf.Ticker(ticker)
-        hist = t.history(period=f"{period_days}d", interval=interval)
-        if hist.empty:
-            return []
-
-        records: List[Dict[str, Any]] = []
-        for ts, row in hist.iterrows():
-            records.append(
-                {
-                    "time": ts.isoformat(),
-                    "open": float(row["Open"]),
-                    "high": float(row["High"]),
-                    "low": float(row["Low"]),
-                    "close": float(row["Close"]),
-                    "volume": int(row.get("Volume", 0)),
-                }
-            )
-        return records
-
     def _fetch_fred(self, series_id: str, count: int) -> List[Dict[str, Any]]:
         """Recupere des donnees FRED."""
         api_key = self.settings.fred_api_key
@@ -210,11 +177,18 @@ if __name__ == "__main__":
     for tf in ("M5", "M15", "H1", "H4"):
         data = fetcher.fetch_xauusd(tf, count=10)
         logger.info(f"XAU/USD {tf}: {len(data)} candles")
+        if len(data) > 0:
+            latest = data.rows()[-1]
+            logger.info(
+                f"  Dernier: O={latest['open']} H={latest['high']} "
+                f"L={latest['low']} C={latest['close']}"
+            )
 
-    logger.info(f"DXY: {len(fetcher.fetch_dxy_m15(5))} candles")
-    logger.info(f"VIX: {len(fetcher.fetch_vix_m15(5))} candles")
-    logger.info(f"US10Y: {len(fetcher.fetch_us10y(5))} points")
-    logger.info(f"TIPS10Y: {len(fetcher.fetch_tips_10y(5))} points")
+    dxy = fetcher.fetch_dxy_m15(5)
+    logger.info(f"DXY-PROXY (EUR/USD): {len(dxy)} candles")
+
+    tips = fetcher.fetch_tips_10y(5)
+    logger.info(f"TIPS10Y: {len(tips)} points")
 
     summary = store.summary()
     logger.info(f"DataStore summary: {summary}")

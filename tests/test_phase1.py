@@ -97,7 +97,10 @@ def test_calendar_cache() -> None:
 
 
 def test_fetcher_without_api_key() -> None:
-    fetcher = DataFetcher()
+    from core.config import Settings
+    settings = Settings()
+    settings.oanda_api_key = None  # force mode degrade
+    fetcher = DataFetcher(settings=settings)
     # Sans cle API, les appels OANDA retournent vide mais ne plantent pas
     data = fetcher.fetch_xauusd_m5(count=5)
     assert len(data) == 0
@@ -340,15 +343,37 @@ def test_fetcher_gap_detection() -> None:
     assert store.summary()["XAU/USD|M5"] == 2
 
 
+def test_fetcher_dxy_proxy() -> None:
+    """Le DXY proxy via EUR/USD est recupere et stocke correctement."""
+    store = DataStore()
+    fetcher = DataFetcher(store=store)
+
+    fake_eur_usd = [
+        {"time": "2024-01-01T10:00:00Z", "open": 1.08, "high": 1.09, "low": 1.07, "close": 1.085, "volume": 1000},
+        {"time": "2024-01-01T10:15:00Z", "open": 1.085, "high": 1.095, "low": 1.08, "close": 1.09, "volume": 1200},
+    ]
+
+    with patch.object(fetcher.oanda, "get_candles", return_value=fake_eur_usd):
+        data = fetcher.fetch_dxy_m15(count=2)
+
+    assert len(data) == 2
+    summary = store.summary()
+    assert "DXY-PROXY|M15" in summary
+    assert summary["DXY-PROXY|M15"] == 2
+
+    latest = store.get_latest("DXY-PROXY", "M15")
+    assert latest is not None
+    assert latest["close"] == 1.09
+
+
 def test_fetcher_context_degraded() -> None:
-    """Sans yfinance ni cles API, les fetchers contexte retournent vide sans planter."""
-    fetcher = DataFetcher()
-    with patch.object(fetcher, "_fetch_yfinance", return_value=[]):
-        assert len(fetcher.fetch_vix_m15(5)) == 0
-        assert len(fetcher.fetch_sp500(5)) == 0
-        assert len(fetcher.fetch_us10y(5)) == 0
-    assert len(fetcher.fetch_tips_10y(5)) == 0
+    """Sans cles API, les fetchers contexte retournent vide sans planter."""
+    from core.config import Settings
+    settings = Settings()
+    settings.oanda_api_key = None
+    fetcher = DataFetcher(settings=settings)
     assert len(fetcher.fetch_dxy_m15(5)) == 0
+    assert len(fetcher.fetch_tips_10y(5)) == 0
 
 
 if __name__ == "__main__":
@@ -368,5 +393,6 @@ if __name__ == "__main__":
     test_calendar_html_mock()
     test_fetcher_store_integration()
     test_fetcher_gap_detection()
+    test_fetcher_dxy_proxy()
     test_fetcher_context_degraded()
     print("[OK] Tous les tests Phase 1 ont passe.")
