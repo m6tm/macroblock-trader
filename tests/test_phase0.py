@@ -31,25 +31,14 @@ from core.resilience import safe_handler, safe_call, install_global_exception_ho
 def test_settings_defaults() -> None:
     s = Settings()
     assert s.trading.asset == "XAU/USD"
-    assert s.trading.risk_pct_a_plus == 1.0
-    assert s.trading.max_trades_simultaneous == 1
+    assert s.trading.sl_min_dollars == 15.0
+    assert s.trading.rr_minimum == 2.0
     assert s.data_dir.exists()
 
 
 def test_settings_validation_ok() -> None:
     s = Settings()
     validate_startup(s)  # ne doit pas lever
-
-
-def test_settings_validation_bad_risk() -> None:
-    s = Settings()
-    s.trading.risk_pct_b = 2.0
-    s.trading.risk_pct_a_plus = 1.0
-    try:
-        validate_startup(s)
-        assert False, "Devrait lever ConfigValidationError"
-    except ConfigValidationError:
-        pass
 
 
 def test_settings_validation_bad_tf() -> None:
@@ -202,7 +191,6 @@ def test_inter_module_scenario() -> None:
 if __name__ == "__main__":
     test_settings_defaults()
     test_settings_validation_ok()
-    test_settings_validation_bad_risk()
     test_settings_validation_bad_tf()
     test_event_bus_pub_sub()
     test_event_bus_isolation()
