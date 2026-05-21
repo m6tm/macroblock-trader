@@ -75,30 +75,30 @@ src/
 **Objectif** : Le squelette du projet est opérationnel. On peut lancer le programme, charger la config, émettre un événement, et logger.
 
 ### 0.1 Environnement Python
-- [ ] Créer le virtualenv (`uv venv` ou `python -m venv`)
-- [ ] Initialiser `pyproject.toml` avec métadonnées, dépendances de base
-- [ ] Créer `.gitignore` adapté (Python, secrets, data, chroma_db)
-- [ ] Créer `README.md` technique (installation, lancement, structure)
+- [x] Créer le virtualenv (`uv venv` ou `python -m venv`)
+- [x] Initialiser `pyproject.toml` avec métadonnées, dépendances de base
+- [x] Créer `.gitignore` adapté (Python, secrets, data, chroma_db)
+- [x] Créer `README.md` technique (installation, lancement, structure)
 
 ### 0.2 Architecture de fichiers (Monolithe Modulaire)
-- [ ] Créer `src/core/` avec `__init__.py` (event bus, config, exceptions, logging)
-- [ ] Créer `src/modules/` avec un sous-dossier par module (`macro/`, `sentiment/`, `technical/`, `fusion/`, `risk/`, `journal/`, `vector_brain/`, `notifications/`)
-- [ ] Créer `src/data/`, `src/storage/`, `src/memory/`
-- [ ] Créer `src/main.py` (point d'entrée unique, un seul processus)
-- [ ] Créer les dossiers `config/`, `data/`, `logs/`, `screenshots/`, `tests/`, `notebooks/`
-- [ ] Règle d'or : aucun module sous `src/modules/` ne fait d'import direct d'un autre module du même niveau. Toute communication passe par le bus.
+- [x] Créer `src/core/` avec `__init__.py` (event bus, config, exceptions, logging)
+- [x] Créer `src/modules/` avec un sous-dossier par module (`macro/`, `sentiment/`, `technical/`, `fusion/`, `risk/`, `journal/`, `vector_brain/`, `notifications/`)
+- [x] Créer `src/data/`, `src/storage/`, `src/memory/`
+- [x] Créer `src/main.py` (point d'entrée unique, un seul processus)
+- [x] Créer les dossiers `config/`, `data/`, `logs/`, `screenshots/`, `tests/`, `notebooks/`
+- [x] Règle d'or : aucun module sous `src/modules/` ne fait d'import direct d'un autre module du même niveau. Toute communication passe par le bus.
 
 ### 0.3 Gestion de configuration
-- [ ] Créer `config/settings.yaml` avec tous les paramètres par défaut
-- [ ] Créer `config/secrets.env` (template, non versionné)
-- [ ] Implémenter le loader de config (`src/core/config.py`) avec Pydantic
-- [ ] Valider la config au démarrage (types, bornes, valeurs obligatoires)
+- [x] Créer `config/settings.yaml` avec tous les paramètres par défaut
+- [x] Créer `config/secrets.env` (template, non versionné)
+- [x] Implémenter le loader de config (`src/core/config.py`) avec Pydantic
+- [x] Valider la config au démarrage (types, bornes, valeurs obligatoires)
 
 ### 0.4 Event Bus interne (In-Process, pas de réseau)
-- [ ] Définir la classe de base `Event` (timestamp, type, payload, source_module)
-- [ ] Implémenter `EventBus` (pub/sub en mémoire, single-threaded ou async selon besoin)
-- [ ] Spécifier : pas de broker externe (Redis, RabbitMQ), pas de sérialisation JSON inutile — appels Python directs
-- [ ] Créer les classes d'événements typés :
+- [x] Définir la classe de base `Event` (timestamp, type, payload, source_module)
+- [x] Implémenter `EventBus` (pub/sub en mémoire, single-threaded ou async selon besoin)
+- [x] Spécifier : pas de broker externe (Redis, RabbitMQ), pas de sérialisation JSON inutile — appels Python directs
+- [x] Créer les classes d'événements typés :
   - `MarketDataEvent`
   - `MacroUpdateEvent`
   - `TechnicalSetupEvent`
@@ -108,14 +108,14 @@ src/
   - `UserFeedbackEvent`
   - `VectorMemoryEvent`
   - `SimilarTradesFoundEvent`
-- [ ] Implémenter le logger structuré (`loguru`) avec rotation
-- [ ] Écrire un test : émettre un événement, le recevoir dans un autre module, le logger
+- [x] Implémenter le logger structuré (`loguru`) avec rotation
+- [x] Écrire un test : émettre un événement, le recevoir dans un autre module, le logger
 
 ### 0.5 Exceptions & Résilience
-- [ ] Définir la hiérarchie d'exceptions custom (`DataFetchError`, `ValidationError`, `RiskLockError`...)
-- [ ] Implémenter le handler global d'exceptions dans `main.py`
-- [ ] Implémenter le mode "dégradation gracieuse" : si une source tombe, le bot continue
-- [ ] Un module en erreur ne doit jamais planter le bus ou les autres modules
+- [x] Définir la hiérarchie d'exceptions custom (`DataFetchError`, `ValidationError`, `RiskLockError`...)
+- [x] Implémenter le handler global d'exceptions dans `main.py`
+- [x] Implémenter le mode "dégradation gracieuse" : si une source tombe, le bot continue
+- [x] Un module en erreur ne doit jamais planter le bus ou les autres modules
 
 **Validation de phase** : `python src/main.py` démarre sans erreur, charge la config, émet et loggue un événement test. Les modules sont importables sans imports croisés.
 
@@ -126,47 +126,47 @@ src/
 **Objectif** : Le bot récupère, normalise et stocke en temps réel toutes les données nécessaires.
 
 ### 1.1 Client API OANDA
-- [ ] Créer `src/data/oanda_client.py`
-- [ ] Implémenter l'authentification (clé API depuis `secrets.env`)
-- [ ] Implémenter `get_candles(pair, timeframe, count)` → retourne OHLCV
-- [ ] Implémenter le retry avec backoff exponentiel (3 tentatives)
-- [ ] Implémenter le rate limiting (respect des quotas OANDA)
-- [ ] Écrire les tests unitaires avec mocking des réponses HTTP
+- [x] Créer `src/data/oanda_client.py`
+- [x] Implémenter l'authentification (clé API depuis `secrets.env`)
+- [x] Implémenter `get_candles(pair, timeframe, count)` → retourne OHLCV
+- [x] Implémenter le retry avec backoff exponentiel (3 tentatives)
+- [x] Implémenter le rate limiting (respect des quotas OANDA)
+- [x] Écrire les tests unitaires avec mocking des réponses HTTP
 
 ### 1.2 Récupération XAU/USD
-- [ ] Créer `src/data/fetcher.py`
-- [ ] Implémenter `fetch_xauusd_m5()` → DataFrame pandas
-- [ ] Implémenter `fetch_xauusd_m15()` → DataFrame pandas
-- [ ] Implémenter `fetch_xauusd_h1()` → DataFrame pandas
-- [ ] Implémenter `fetch_xauusd_h4()` → DataFrame pandas
-- [ ] Vérifier la cohérence des timestamps (pas de gap > 5 min en M5)
+- [x] Créer `src/data/fetcher.py`
+- [x] Implémenter `fetch_xauusd_m5()` → DataFrame pandas
+- [x] Implémenter `fetch_xauusd_m15()` → DataFrame pandas
+- [x] Implémenter `fetch_xauusd_h1()` → DataFrame pandas
+- [x] Implémenter `fetch_xauusd_h4()` → DataFrame pandas
+- [x] Vérifier la cohérence des timestamps (pas de gap > 5 min en M5)
 
 ### 1.3 Récupération contexte marché (DXY, Yields, VIX)
-- [ ] Implémenter `fetch_dxy_m15()`
-- [ ] Implémenter `fetch_us10y()` (via yfinance ou FRED)
-- [ ] Implémenter `fetch_tips_10y()` (via FRED API)
-- [ ] Implémenter `fetch_vix_m15()`
-- [ ] Implémenter `fetch_sp500()`
+- [x] Implémenter `fetch_dxy_m15()`
+- [x] Implémenter `fetch_us10y()` (via yfinance ou FRED)
+- [x] Implémenter `fetch_tips_10y()` (via FRED API)
+- [x] Implémenter `fetch_vix_m15()`
+- [x] Implémenter `fetch_sp500()`
 
 ### 1.4 Calendrier économique
-- [ ] Créer `src/data/calendar.py`
-- [ ] Implémenter le scraper ForexFactory (ou API alternative)
-- [ ] Parser les événements : date, heure, devise, impact (low/medium/high)
-- [ ] Identifier les événements à haut impact pour l'or (FOMC, NFP, CPI, PPI, PCE)
-- [ ] Implémenter le cache (rafraîchissement toutes les 5 minutes)
-- [ ] Écrire les tests avec HTML mocké
+- [x] Créer `src/data/calendar.py`
+- [x] Implémenter le scraper ForexFactory (ou API alternative)
+- [x] Parser les événements : date, heure, devise, impact (low/medium/high)
+- [x] Identifier les événements à haut impact pour l'or (FOMC, NFP, CPI, PPI, PCE)
+- [x] Implémenter le cache (rafraîchissement toutes les 5 minutes)
+- [x] Écrire les tests avec HTML mocké
 
 ### 1.5 Normalisation & Cache temps réel
-- [ ] Créer `src/data/normalizer.py`
-- [ ] Normaliser les OHLCV (types float, timezone UTC, index datetime)
-- [ ] Créer le `DataStore` en mémoire (dict de DataFrames par pair/timeframe)
-- [ ] Implémenter `get_latest_ohlcv(pair, timeframe)`
-- [ ] Implémenter `get_historical_ohlcv(pair, timeframe, bars)`
+- [x] Créer `src/data/normalizer.py`
+- [x] Normaliser les OHLCV (types float, timezone UTC, index datetime)
+- [x] Créer le `DataStore` en mémoire (dict de DataFrames par pair/timeframe)
+- [x] Implémenter `get_latest_ohlcv(pair, timeframe)`
+- [x] Implémenter `get_historical_ohlcv(pair, timeframe, bars)`
 
 ### 1.6 Gestion des screenshots
-- [ ] Créer `src/data/screenshot.py`
-- [ ] Implémenter la capture du chart au moment du signal (via lightweight-charts ou matplotlib)
-- [ ] Sauvegarder dans `screenshots/SIG-xxx.png`
+- [x] Créer `src/data/screenshot.py`
+- [x] Implémenter la capture du chart au moment du signal (via lightweight-charts ou matplotlib)
+- [x] Sauvegarder dans `screenshots/SIG-xxx.png`
 
 **Validation de phase** : Un script `python -m src.data.fetcher` récupère XAU/USD M5/M15/H1/H4, DXY, VIX, US10Y et les stocke en mémoire sans erreur.
 
