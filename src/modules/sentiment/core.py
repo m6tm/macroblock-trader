@@ -365,16 +365,22 @@ class SentimentFetcher:
         retail_fetcher: Optional[RetailFetcher] = None,
         fg_fetcher: Optional[FearGreedFetcher] = None,
     ) -> None:
-        cfg = settings or load_settings()
+        if settings is None:
+            cfg = load_settings().sentiment
+        elif isinstance(settings, Settings):
+            cfg = settings.sentiment
+        else:
+            # Support SentimentConfig passé directement (tests)
+            cfg = settings
         self.cot = cot_fetcher or COTFetcher(
-            url=cfg.sentiment.cot_url,
-            fallback_file=cfg.sentiment.cot_fallback_file,
+            url=cfg.cot_url,
+            fallback_file=cfg.cot_fallback_file,
         )
         self.retail = retail_fetcher or RetailFetcher(
-            url=cfg.sentiment.retail_sentiment_url,
+            url=cfg.retail_sentiment_url,
         )
         self.fg = fg_fetcher or FearGreedFetcher(
-            enabled=cfg.sentiment.fear_greed_enabled,
+            enabled=cfg.fear_greed_enabled,
         )
 
     def snapshot(self) -> SentimentSnapshot:
