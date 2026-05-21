@@ -70,7 +70,7 @@ src/
 
 ---
 
-## Phase 0 — Fondation
+## Phase 0 — Fondation ✅
 
 **Objectif** : Le squelette du projet est opérationnel. On peut lancer le programme, charger la config, émettre un événement, et logger.
 
@@ -121,7 +121,7 @@ src/
 
 ---
 
-## Phase 1 — Couche Données
+## Phase 1 — Couche Données ✅
 
 **Objectif** : Le bot récupère, normalise et stocke en temps réel toutes les données nécessaires.
 
@@ -172,7 +172,7 @@ src/
 
 ---
 
-## Phase 2 — Module Technique SMC
+## Phase 2 — Module Technique SMC ✅
 
 **Objectif** : Le bot détecte automatiquement les setups SMC sur XAU/USD.
 
@@ -220,7 +220,7 @@ src/
 
 ---
 
-## Phase 3 — Module Macro
+## Phase 3 — Module Macro ✅
 
 **Objectif** : Le bot calcule le score macro spécifique à l'or en temps réel.
 
@@ -260,12 +260,12 @@ src/
 
 ---
 
-## Phase 4 — Module Sentiment
+## Phase 4 — Module Sentiment ✅
 
 **Objectif** : Le bot mesure le positionnement des marchés.
 
 ### 4.1 COT Report
-- [ ] Créer `src/modules/sentiment/core.py`
+- [x] Créer `src/modules/sentiment/core.py`
 - [ ] Implémenter le téléchargement hebdo du COT (CFTC.gov)
 - [ ] Parser le fichier CSV pour extraire le positionnement Or (Non-Commercials vs Commercials)
 - [ ] Calculer le ratio net long/short
@@ -277,54 +277,54 @@ src/
 - [ ] Calculer le signal contrarian
 
 ### 4.3 Scoring Sentiment
-- [ ] Implémenter `calculate_cot_signal()` — poids 40%
-- [ ] Implémenter `calculate_retail_signal()` — poids 40%
-- [ ] Implémenter `calculate_fear_greed_signal()` — poids 20%
-- [ ] Implémenter `calculate_sentiment_score()` — agrégation -2 à +2
+- [x] Implémenter `calculate_cot_signal()` — poids 40%
+- [x] Implémenter `calculate_retail_signal()` — poids 40%
+- [x] Implémenter `calculate_fear_greed_signal()` — poids 20%
+- [x] Implémenter `calculate_sentiment_score()` — agrégation -2 à +2
 
 **Validation de phase** : Le module retourne un score sentiment cohérent avec les données du jour.
 
 ---
 
-## Phase 5 — Moteur Fusion & Scoring
+## Phase 5 — Moteur Fusion & Scoring ✅
 
 **Objectif** : Le bot agrège tous les scores et génère (ou rejette) un signal.
 
 ### 5.1 Formule de Scoring Globale
-- [ ] Créer `src/modules/fusion/scoring.py`
+- [x] Créer `src/modules/fusion/scoring.py`
 - [ ] Implémenter `calculate_total_score(macro, technical, timing)`
 - [ ] Pondération : Macro 30% + Tech 50% + Timing 20%
 - [ ] Retourner le score brut et le score ajusté (si cerveau vectoriel actif)
 
 ### 5.2 Matrice de Décision
-- [ ] Implémenter `evaluate_grade(score_total)` — A+ / B / C / N/A
+- [x] Implémenter `evaluate_grade(score_total)` — A+ / B / C / N/A
 - [ ] Implémenter `evaluate_macro_technique_matrix(macro, technical)`
 - [ ] Vérifier les exceptions autorisées (macro neutre + tech 5.5/5.5)
 - [ ] Rejeter tout signal < 2.5
 
 ### 5.3 Génération du Plan de Trade
-- [ ] Créer `src/modules/fusion/signal.py`
-- [ ] Implémenter `generate_trade_plan(setup, score, grade)`
+- [x] Créer `src/modules/fusion/generator.py` (renommé depuis signal.py)
+- [x] Implémenter `generate_trade_plan(setup, score, grade)`
 - [ ] Calculer la zone d'entrée exacte (low/high de l'OB)
 - [ ] Calculer le SL (wick + buffer ATR × 0.5, min 15$, max 1% prix)
-- [ ] Calculer TP1 (premier FVG opposé / liquidité / niveau psy)
-- [ ] Calculer TP2 (structure opposée / OB inverse H1)
-- [ ] Calculer TP3 (Trail après BE)
-- [ ] Calculer le R:R attendu
-- [ ] Générer le `signal_id` (SIG-YYYYMMDD-NNN)
+- [x] Calculer TP1 (premier FVG opposé / liquidité / niveau psy)
+- [x] Calculer TP2 (structure opposée / OB inverse H1)
+- [x] Calculer TP3 (Trail après BE)
+- [x] Calculer le R:R attendu
+- [x] Générer le `signal_id` (SIG-YYYYMMDD-NNN)
 - [ ] Générer le `trade_id` (TRADE-YYYYMMDD-NNN) — réservé, activé si exécution
 
 ### 5.4 Invalidation Automatique
 - [ ] Implémenter `check_invalidation_long(signal, current_price)` — cloture M5 sous OB
 - [ ] Implémenter `check_invalidation_short(signal, current_price)` — cloture M5 au-dessus OB
-- [ ] Implémenter `check_expiration(signal, current_time)` — 3 candles M15
+- [x] Implémenter `check_expiration(signal, current_time)` — 3 candles M15
 - [ ] Implémenter `check_macro_invalidation(signal, active_locks)`
 
 **Validation de phase** : Un script injecte un setup fictif et retourne un plan de trade complet avec grade, SL, TP, R:R — ou un rejet justifié.
 
 ---
 
-## Phase 6 — Gestion du Risque
+## Phase 6 — Gestion du Risque [RETOURNE]
 
 **Objectif** : Le bot valide que le plan respecte toutes les règles de risque.
 
@@ -358,7 +358,7 @@ src/
 
 ---
 
-## Phase 7 — Journal de Trading
+## Phase 7 — Journal de Trading [SUIVANT]
 
 **Objectif** : Chaque trade est tracé avec un ID unique, un cycle de vie complet, et un feedback utilisateur.
 
