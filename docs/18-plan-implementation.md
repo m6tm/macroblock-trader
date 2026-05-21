@@ -225,36 +225,36 @@ src/
 **Objectif** : Le bot calcule le score macro spécifique à l'or en temps réel.
 
 ### 3.1 Fetcher Macro
-- [ ] Créer `src/modules/macro/core.py`
-- [ ] Implémenter `get_dxy_momentum()` — variation M15, tendance H1
-- [ ] Implémenter `get_us10y_value()`
-- [ ] Implémenter `get_tips_10y_value()` (FRED, quotidien)
-- [ ] Implémenter `get_vix_value()`
-- [ ] Implémenter `get_sp500_momentum()`
+- [x] Créer `src/modules/macro/core.py`
+- [x] Implémenter `get_dxy_momentum()` — variation M15, tendance H1
+- [x] Implémenter `get_us10y_value()`
+- [x] Implémenter `get_tips_10y_value()` (FRED, quotidien)
+- [~] Implémenter `get_vix_value()` — source indisponible (mode dégradé, retourne 0)
+- [~] Implémenter `get_sp500_momentum()` — source indisponible (mode dégradé, retourne 0)
 
 ### 3.2 Parser Calendrier Économique
-- [ ] Implémenter `get_upcoming_high_impact_events(hours=2)`
-- [ ] Implémenter `is_macro_lock_active()` — vérifier les fenêtres de blocage
-- [ ] Implémenter `get_last_inflation_surprise()` — écart CPI/PPI vs consensus
+- [x] Implémenter `get_upcoming_high_impact_events(hours=2)`
+- [x] Implémenter `is_macro_lock_active()` — vérifier les fenêtres de blocage
+- [x] Implémenter `get_last_inflation_surprise()` — écart CPI/PPI vs consensus
 
 ### 3.3 Scoring Macro Or
-- [ ] Implémenter `calculate_dxy_component(dxy_data)` — poids 30%
-- [ ] Implémenter `calculate_yields_component(yields_data)` — poids 25%
-- [ ] Implémenter `calculate_fed_policy_component()` — poids 20%
-- [ ] Implémenter `calculate_risk_sentiment_component(vix, sp500)` — poids 15%
-- [ ] Implémenter `calculate_inflation_surprise_component()` — poids 10%
-- [ ] Implémenter `calculate_macro_score()` — agrégation -3 à +3
-- [ ] Retourner la justification textuelle (pour le journal et les logs)
+- [x] Implémenter `calculate_dxy_component(dxy_data)` — poids 30%
+- [x] Implémenter `calculate_yields_component(yields_data)` — poids 25%
+- [x] Implémenter `calculate_fed_policy_component()` — poids 20%
+- [x] Implémenter `calculate_risk_sentiment_component(vix, sp500)` — poids 15% (mode dégradé si sources indisponibles)
+- [x] Implémenter `calculate_inflation_surprise_component()` — poids 10%
+- [x] Implémenter `calculate_macro_score()` — agrégation -3 à +3
+- [x] Retourner la justification textuelle (pour le journal et les logs)
 
 ### 3.4 Macro Locks
-- [ ] Implémenter `check_fomc_lock()`
-- [ ] Implémenter `check_nfp_lock()`
-- [ ] Implémenter `check_cpi_lock()`
-- [ ] Implémenter `check_london_fix_lock()` — AM et PM
-- [ ] Implémenter `check_comex_open_lock()`
-- [ ] Implémenter `check_dxy_spike_lock()` — move > 0.2% en 5 min
-- [ ] Implémenter `check_yield_spike_lock()` — move > 5bps en 5 min
-- [ ] Implémenter `get_active_locks()` — liste des locks actifs avec raison
+- [x] Implémenter `check_fomc_lock()`
+- [x] Implémenter `check_nfp_lock()`
+- [x] Implémenter `check_cpi_lock()`
+- [x] Implémenter `check_london_fix_lock()` — AM et PM
+- [x] Implémenter `check_comex_open_lock()`
+- [x] Implémenter `check_dxy_spike_lock()` — move > 0.2% en 5 min
+- [x] Implémenter `check_yield_spike_lock()` — move > 5bps en 5 min
+- [x] Implémenter `get_active_locks()` — liste des locks actifs avec raison
 
 **Validation de phase** : Un script affiche le score macro actuel avec justification, et liste les locks actifs (si applicable).
 
