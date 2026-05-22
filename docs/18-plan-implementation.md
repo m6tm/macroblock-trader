@@ -359,15 +359,15 @@ src/
 
 ---
 
-## Phase 7 — Journal de Trading 🟡 (PARTIELLE — core OK)
+## Phase 7 — Journal de Trading ✅
 
 **Objectif** : Chaque trade est tracé avec un ID unique, un cycle de vie complet, et un feedback utilisateur.
 
 ### 7.1 Schéma SQLite
 - [x] Créer `src/modules/journal/database.py`
-- [x] Créer la table `trades` avec les champs essentiels (core pour Phase 6)
+- [x] Créer la table `trades` avec 43 champs (identification, contexte, setup, plan, résultat virtuel, feedback)
 - [x] Créer la table `signals` pour les signaux non exécutés
-- [x] Créer les indexes : `idx_trades_date`, `idx_trades_status`
+- [x] Créer les indexes : `idx_trades_date`, `idx_trades_status`, `idx_trades_signal_id`
 - [x] Schema version manuel (pas Alembic)
 
 ### 7.2 Gestion des IDs
@@ -376,27 +376,28 @@ src/
 - [x] Unicité garantie par timestamp + compteur secondes
 
 ### 7.3 Cycle de vie du Trade
-- [x] Implémenter `create_trade()` → état OPEN — `TradeLifecycle.create_trade()`
-- [x] Implémenter `close_trade_virtual()` → état CLOSED_WIN/LOSS/BE — `TradeLifecycle.close_trade()`
-- [ ] `create_signal()` → état GENERATED (optionnel)
-- [ ] `execute_trade()` → EXECUTED / ACTIVE (besoin execution manuelle)
-- [ ] `expire_signal()` → EXPIRED (optionnel)
-- [ ] Feedback utilisateur — non implémenté (besoin interface Telegram)
+- [x] `create_signal()` → état GENERATED
+- [x] `expire_signal()` → EXPIRED
+- [x] `execute_trade()` → EXECUTED (insertion DB complète avec contexte)
+- [x] `activate_trade()` → ACTIVE (entrée au prix réel)
+- [x] `close_trade_virtual()` → CLOSED_WIN/LOSS/BE (P&L virtuel, duration, hit flags)
+- [x] `request_feedback()` → FEEDBACK_PENDING
+- [x] `submit_feedback()` → VALIDATED (satisfaction, notes, exit utilisateur)
+- [x] `auto_close_feedback()` → AUTO_CLOSED après 7 jours sans feedback
 
 ### 7.4 Interface de Requetes
 - [x] Créer `src/modules/journal/queries.py`
-- [x] Implémenter `get_open_trades()` / `get_open_trade_count()`
-- [x] Implémenter `get_today_pnl()` / `get_week_pnl()`
-- [x] Implémenter `get_drawdown_today_pct()` / `get_drawdown_week_pct()`
-- [x] Implémenter `get_win_rate()` / `get_total_trades_count()`
-- [ ] `get_trades_awaiting_feedback()` — non implémenté (besoin feedback)
-- [ ] Export CSV/JSON — non implémenté
+- [x] `get_trade_by_id()`, `get_trades_by_status()`
+- [x] `get_trades_awaiting_feedback()`
+- [x] `get_drawdown_today()` / `get_drawdown_this_week()` (en $ et %)
+- [x] `get_win_rate_by_setup()` / `get_win_rate_by_killzone()`
+- [x] Export CSV/JSON
 
 ### 7.5 Journal Post-Trade
 - [x] Log structuré via `loguru` dans `TradeLifecycle.close_trade()`
-- [ ] `log_post_trade(trade_id)` format dédié — non implémenté
+- [x] `log_post_trade(trade_id)` format dédié (setup, P&L, feedback)
 
-**Validation de phase** : Un script crée un signal, l'exécute, le cloture virtuellement, soumet un feedback, et vérifie que l'état final est VALIDATED avec tous les champs remplis.
+**Validation de phase** : Un script crée un signal, l'exécute, le cloture virtuellement, soumet un feedback, et vérifie que l'état final est VALIDATED avec tous les champs remplis. ✅
 
 ---
 
