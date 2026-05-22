@@ -27,6 +27,17 @@ sentiment:
   retail_sentiment_url: null
   fear_greed_enabled: true
 
+vector_brain:
+  persist_dir: "./data/chroma_db/"
+  collection_name: "gold_memory"
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  use_chroma_if_available: true
+  use_sentence_transformers_if_available: true
+  mode_threshold_passive: 30
+  mode_threshold_light: 100
+  similar_trades_count: 5
+  min_trades_for_insight: 3
+
 notifications:
   telegram_enabled: false
   dashboard_enabled: true

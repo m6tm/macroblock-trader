@@ -401,53 +401,48 @@ src/
 
 ---
 
-## Phase 8 — Cerveau Vectoriel
+## Phase 8 — Cerveau Vectoriel ✅
 
 **Objectif** : Le bot mémorise chaque trade et apprend des similarités.
 
 ### 8.1 Setup ChromaDB
-- [ ] Créer `src/modules/vector_brain/store.py`
-- [ ] Initialiser ChromaDB persistant (`./data/chroma_db/`)
-- [ ] Créer la collection `gold_memory`
-- [ ] Configurer la distance (cosine)
+- [x] Créer `src/modules/vector_brain/store.py`
+- [x] Interface abstraite `VectorStore` — ChromaDB + fallback Numpy
+- [x] ChromaDB persistant (`./data/chroma_db/`) avec collection `gold_memory` et distance cosine
+- [x] Fallback `NumpyVectorStore` — JSON persisté, k-NN cosine en pur NumPy (Termux-compatible)
 
 ### 8.2 Embedding Engine
-- [ ] Créer `src/modules/vector_brain/embedding.py`
-- [ ] Charger le modèle `sentence-transformers/all-MiniLM-L6-v2`
-- [ ] Implémenter `generate_embedding(trade_dict)` — texte descriptif → vecteur 384 dims
-- [ ] Alternative : implémenter `generate_embedding_numeric(features_dict)` — features normalisées → vecteur
+- [x] Créer `src/modules/vector_brain/embedding.py`
+- [x] `SentenceTransformerEngine` — `all-MiniLM-L6-v2` (384 dims) quand disponible
+- [x] `FeatureEmbeddingEngine` — fallback déterministe : features normalisées + one-hot → vecteur 25 dims
+- [x] Factory `create_embedding_engine()` auto-sélectionne selon environnement
 
 ### 8.3 Vectorisation des Trades
-- [ ] Implémenter `vectorize_trade(trade_id)`
-- [ ] Récupérer le trade depuis SQLite
-- [ ] Générer le texte descriptif du contexte + setup
-- [ ] Encoder en vecteur
-- [ ] Stocker dans ChromaDB avec métadonnées complètes
+- [x] `build_trade_text()` — génère description sémantique riche
+- [x] `vectorize_trade(store, engine, trade)` — encode et persiste dans le vector store
+- [x] `update_trade_vector_metadata()` — mise à jour post-feedback (P&L réel, status)
+- [x] Métadonnées complètes attachées au vecteur
 
 ### 8.4 Retrieval k-NN
-- [ ] Créer `src/modules/vector_brain/retrieval.py`
-- [ ] Implémenter `find_similar_trades(setup_vector, n=5)`
-- [ ] Filtrer : `user_executed = true`, `feedback_status = SUBMITTED`
-- [ ] Retourner : trade_ids, similarités scores, métadonnées
+- [x] Créer `src/modules/vector_brain/retrieval.py`
+- [x] `find_similar_trades()` — k-NN avec filtres (`user_executed=true`, `feedback_status=SUBMITTED`)
+- [x] `analyze_similar_trades()` — agrège WR, P&L moyen, similarité moyenne, R:R réalisé
 
 ### 8.5 Ajustement du Scoring
-- [ ] Implémenter `calculate_adjustment(similar_trades)`
-- [ ] Calculer WR similaire, P&L moyen, similarité moyenne
-- [ ] Règles d'ajustement selon le mode (PASSIF / LÉGER / PLEIN)
-- [ ] Intégrer dans `src/modules/fusion/scoring.py` (appel conditionnel)
+- [x] `calculate_adjustment()` — règles selon mode : PASSIF=0, LÉGER=±0.1, PLEIN=±0.3/+0.1
+- [x] `AdjustmentResult` avec raison explicative
+- [x] L'ajustement ne change pas de grade (renforce ou affaiblit uniquement)
 
 ### 8.6 Modes d'Activation
-- [ ] Implémenter `get_vector_db_mode(trades_count)`
-- [ ] < 30 trades → PASSIF (ajustement 0)
-- [ ] 30–100 trades → LÉGER (±0.1)
-- [ ] 100+ trades → PLEIN (±0.3)
-- [ ] Configurable via `settings.yaml`
+- [x] `get_vector_db_mode(trades_count)` — PASSIF < 30, LÉGER 30–100, PLEIN 100+
+- [x] Paramètres configurables via `settings.yaml`
 
 ### 8.7 Consolidation Hebdomadaire
-- [ ] Implémenter `weekly_clustering()` — clustering des vecteurs de la semaine
-- [ ] Implémenter `generate_weekly_insights()` — patterns gagnants/perdants
+- [x] `weekly_clustering()` — regroupement par setup_type et killzone
+- [x] `generate_weekly_insights()` — patterns gagnants/perdants avec seuil min_trades
+- [x] `best_and_worst_setups()` — extraction des setups extremes
 
-**Validation de phase** : Un script vectorise 5 trades fictifs, recherche les plus similaires, et retourne un ajustement cohérent.
+**Validation de phase** : Un script vectorise 5 trades fictifs, recherche les plus similaires, et retourne un ajustement cohérent. ✅
 
 ---
 
