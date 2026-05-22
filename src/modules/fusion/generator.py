@@ -1,13 +1,13 @@
-"""Generation du Plan de Trade — niveaux techniques sans sizing.
+"""Generation du Plan de Trade — niveaux techniques + sizing + validation risque.
 
 Le bot calcule :
   - Zone d'entree (low/high de l'OB)
   - SL (derriere le wick de l'OB + buffer ATR × 0.5, min 15$, max 1% prix)
   - TP1/TP2/TP3 (liquidite, FVG oppose, trail)
   - R:R attendu
+  - Sizing (lots) selon capital virtuel et % risque par grade
+  - Validation risque (SL, R:R, drawdown, max trades, weekend gap)
   - Prix d'invalidation (cloture M5 sous/au-dessus de l'OB)
-
-PAS de calcul de taille de position, PAS de % capital risque.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ from loguru import logger
 
 from core.config import Settings, load_settings
 from modules.fusion.scoring import FusionScore
+from modules.journal.database import JournalDatabase
+from modules.risk.engine import RiskEngine
 from modules.technical.fvg import FairValueGap
 from modules.technical.liquidity import LiquidityPool, get_current_killzone
 from modules.technical.ob import OrderBlock
@@ -98,6 +100,11 @@ class TradePlan:
     valid_until: str = ""
     justification: str = ""
 
+    # Sizing & Risque
+    position_size_lots: Optional[float] = None
+    risk_amount_dollars: Optional[float] = None
+    risk_pct: Optional[float] = None
+
     # Contexte
     macro_context: Dict[str, Any] = field(default_factory=dict)
     technical_context: Dict[str, Any] = field(default_factory=dict)
@@ -110,10 +117,15 @@ class TradePlan:
 # ---------------------------------------------------------------------------
 
 class SignalGenerator:
-    """Genere un plan de trade pur a partir d'un setup technique valide."""
+    """Genere un plan de trade valide a partir d'un setup technique."""
 
-    def __init__(self, settings: Optional[Settings] = None) -> None:
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        db: Optional[JournalDatabase] = None,
+    ) -> None:
         self.settings = settings or load_settings()
+        self.risk_engine = RiskEngine(settings=self.settings, db=db)
 
     def generate(
         self,
@@ -133,7 +145,8 @@ class SignalGenerator:
             atr_value: Valeur ATR (optionnel) pour buffer SL
 
         Returns:
-            TradePlan si le grade est A+ ou B et matrix autorisee, sinon None.
+            TradePlan si le grade est A+ ou B, matrix autorisee, et risque OK.
+            Sinon None avec raison loggee.
         """
         # Rejection stricte
         if fusion.grade in ("N/A", "C"):
@@ -241,17 +254,25 @@ class SignalGenerator:
             notes=notes,
         )
 
-        # Check R:R minimum (warning, pas rejet — user gere le sizing manuellement)
-        if rr < self.settings.trading.rr_minimum:
+        # 8. Validation risque + sizing
+        risk_result = self.risk_engine.check_trade(plan, grade=fusion.grade)
+        if not risk_result.authorized:
             logger.warning(
-                f"R:R {rr} < minimum {self.settings.trading.rr_minimum} — "
-                f"signal valide mais moins attractif"
+                f"Signal rejete par RiskEngine — {risk_result.reason}"
             )
+            return None
+
+        # Ajouter sizing au plan
+        if risk_result.sizing:
+            plan.position_size_lots = risk_result.sizing.position_size_lots
+            plan.risk_amount_dollars = risk_result.sizing.risk_amount_dollars
+            plan.risk_pct = risk_result.sizing.risk_pct
 
         logger.success(
             f"Plan genere {signal_id} | {direction} {fusion.grade} | "
             f"Entry={plan.preferred_entry} | SL={plan.sl_price} ({plan.sl_distance_pips} pips) | "
             f"TP1={plan.tp1_price} | R:R={plan.rr_ratio} | "
+            f"Size={plan.position_size_lots:.2f} lots | Risk={plan.risk_pct}% | "
             f"Valid until {valid_until}"
         )
         return plan

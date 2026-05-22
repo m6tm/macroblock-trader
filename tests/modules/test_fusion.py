@@ -72,8 +72,8 @@ def _make_pools(direction: str = "LONG") -> list:
             LiquidityPool(type="PDH", price=2390.0, label="prev day high", strength=2.5),
         ]
     return [
-        LiquidityPool(type="PSYCH", price=2305.0, label="niveau 2305", strength=2.0),
-        LiquidityPool(type="PDL", price=2290.0, label="prev day low", strength=2.5),
+        LiquidityPool(type="PSYCH", price=2280.0, label="niveau 2280", strength=2.0),
+        LiquidityPool(type="PDL", price=2260.0, label="prev day low", strength=2.5),
     ]
 
 
@@ -288,8 +288,8 @@ def test_signal_rejected_matrix() -> None:
     assert plan is None
 
 
-def test_signal_no_sizing() -> None:
-    """Le plan ne doit pas contenir de champs sizing/risque."""
+def test_signal_has_sizing() -> None:
+    """Le plan doit contenir le sizing calcule par le RiskEngine."""
     generator = SignalGenerator()
     setup = _make_setup(score=5.0)
     fusion = FusionScore(
@@ -298,11 +298,15 @@ def test_signal_no_sizing() -> None:
         sentiment_adjustment=0.0, justification="mock",
         matrix_authorized=True, matrix_reason="",
     )
-    plan = generator.generate(setup, fusion, pools=[], fvgs=[])
+    pools = _make_pools("LONG")
+    plan = generator.generate(setup, fusion, pools=pools, fvgs=[])
     assert plan is not None
-    assert not hasattr(plan, "position_size")
-    assert not hasattr(plan, "risk_pct")
-    assert not hasattr(plan, "capital_at_risk")
+    assert plan.position_size_lots is not None
+    assert plan.position_size_lots > 0
+    assert plan.risk_amount_dollars is not None
+    assert plan.risk_pct is not None
+    # Grade A+ → risk 1.0%
+    assert plan.risk_pct == 1.0
 
 
 def test_sl_distance_calculation() -> None:
@@ -394,7 +398,7 @@ def test_sl_with_atr() -> None:
         sentiment_adjustment=0.0, justification="mock",
         matrix_authorized=True, matrix_reason="",
     )
-    pools = [LiquidityPool(type="PSYCH", price=3050.0, label="niveau 3050", strength=2.0)]
+    pools = [LiquidityPool(type="PSYCH", price=3070.0, label="niveau 3070", strength=2.0)]
     # ATR = 50$ → buffer = max(15, 25) = 25
     plan = generator.generate(setup, fusion, pools=pools, fvgs=[], atr_value=50.0)
     assert plan is not None
@@ -479,7 +483,7 @@ if __name__ == "__main__":
     test_signal_generation_short()
     test_signal_rejected_low_grade()
     test_signal_rejected_matrix()
-    test_signal_no_sizing()
+    test_signal_has_sizing()
     test_sl_distance_calculation()
     test_pips_calculation()
     test_signal_id_format()

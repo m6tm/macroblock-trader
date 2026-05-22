@@ -325,77 +325,76 @@ src/
 
 ---
 
-## Phase 6 — Gestion du Risque [RETOURNE]
+## Phase 6 — Gestion du Risque ✅ (TERMINEE)
 
 **Objectif** : Le bot valide que le plan respecte toutes les règles de risque.
 
 ### 6.1 Sizing
-- [ ] Créer `src/modules/risk/sizing.py`
-- [ ] Implémenter `calculate_position_size(capital, risk_pct, sl_distance_dollars)`
-- [ ] Grade A+ → risk 1.0%, Grade B → risk 0.5%
-- [ ] Vérifier que la taille en lots est physiquement réalisable
+- [x] Créer `src/modules/risk/sizing.py`
+- [x] Implémenter `calculate_position_size(capital, risk_pct, sl_distance_dollars)`
+- [x] Grade A+ → risk 1.0%, Grade B → risk 0.5%
+- [x] Vérifier que la taille en lots est physiquement réalisable (0.01–10.0 lots)
 
 ### 6.2 Validation SL
-- [ ] Implémenter `validate_sl_distance(sl_distance_dollars, entry_price)`
-- [ ] Min 15$, max 1.0% du prix
-- [ ] Vérifier que le SL est technique (derrière le wick de l'OB)
+- [x] Implémenter `validate_sl_distance(sl_distance_dollars, entry_price)` — `RiskValidator.validate_sl()`
+- [x] Min 15$, max 1.0% du prix
+- [x] SL derrière le wick de l'OB + buffer ATR × 0.5 (dans `generator.py`)
 
 ### 6.3 Validation R:R
-- [ ] Implémenter `validate_rr(rr_expected)`
-- [ ] Minimum 1:2.0 sur l'or
-- [ ] Rejeter le setup si R:R insuffisant
+- [x] Implémenter `validate_rr(rr_expected)` — `RiskValidator.validate_rr()`
+- [x] Minimum 1:2.0 sur l'or
+- [x] Rejeter le setup si R:R insuffisant (via `RiskEngine`)
 
 ### 6.4 Locks de Risque
-- [ ] Implémenter `check_max_trades_open(current_trades)` — max 1 sur XAU/USD
-- [ ] Implémenter `check_drawdown_lock(current_drawdown)` — 2% journalier
-- [ ] Implémenter `check_correlation_dxy_lock(direction, dxy_move_5min)` — move > 0.2%
-- [ ] Implémenter `check_weekend_gap_lock()` — pas de signal avant cloture H1 dimanche
-- [ ] Implémenter `run_full_risk_check(trade_plan)` — checklist complète 10 points
+- [x] Implémenter `check_max_trades_open(current_trades)` — max 1 sur XAU/USD
+- [x] Implémenter `check_drawdown_lock(current_drawdown)` — 2% journalier / 4% hebdo
+- [x] `check_correlation_dxy_lock` — déjà dans macro locks (Phase 3)
+- [x] Implémenter `check_weekend_gap_lock()` — vendredi 21h → dimanche 21h UTC
+- [x] Implémenter `run_full_risk_check(trade_plan)` — `RiskEngine.check_trade()`
 
 ### 6.5 Journal des décisions risque
-- [ ] Logger chaque check risque (passé ou rejeté) avec justification
+- [x] Logger chaque check risque (passé ou rejeté) avec justification — `loguru` dans `RiskValidator` + `RiskEngine`
 
 **Validation de phase** : Un script teste 5 plans de trade (valides et invalides) et le risk engine accepte/rejette correctement chacun.
 
 ---
 
-## Phase 7 — Journal de Trading [SUIVANT]
+## Phase 7 — Journal de Trading 🟡 (PARTIELLE — core OK)
 
 **Objectif** : Chaque trade est tracé avec un ID unique, un cycle de vie complet, et un feedback utilisateur.
 
 ### 7.1 Schéma SQLite
-- [ ] Créer `src/modules/journal/database.py`
-- [ ] Créer la table `trades` avec les 40+ champs (voir [15 — Module Journal](15-module-journal.md))
-- [ ] Créer la table `signals` pour les signaux non exécutés
-- [ ] Créer les indexes : `idx_trades_date`, `idx_trades_status`, `idx_trades_feedback`, `idx_trades_setup`
-- [ ] Implémenter les migrations (Alembic ou version manuelle)
+- [x] Créer `src/modules/journal/database.py`
+- [x] Créer la table `trades` avec les champs essentiels (core pour Phase 6)
+- [x] Créer la table `signals` pour les signaux non exécutés
+- [x] Créer les indexes : `idx_trades_date`, `idx_trades_status`
+- [x] Schema version manuel (pas Alembic)
 
 ### 7.2 Gestion des IDs
-- [ ] Implémenter `generate_signal_id()` → SIG-YYYYMMDD-NNN
-- [ ] Implémenter `generate_trade_id()` → TRADE-YYYYMMDD-NNN
-- [ ] Garantir l'unicité (incrément atomique, fichier de compteur ou MAX+1 SQL)
+- [x] Implémenter `generate_signal_id()` → SIG-YYYYMMDD-NNN
+- [x] Implémenter `generate_trade_id()` → TRADE-YYYYMMDD-NNN
+- [x] Unicité garantie par timestamp + compteur secondes
 
 ### 7.3 Cycle de vie du Trade
-- [ ] Implémenter `create_signal(signal_data)` → état GENERATED
-- [ ] Implémenter `execute_trade(signal_id, user_confirmed)` → SIG devient TRADE, état EXECUTED
-- [ ] Implémenter `activate_trade(trade_id, entry_price)` → état ACTIVE
-- [ ] Implémenter `close_trade_virtual(trade_id, exit_price, outcome)` → état CLOSED_WIN/LOSS/BE
-- [ ] Implémenter `expire_signal(signal_id)` → état EXPIRED
-- [ ] Implémenter `request_feedback(trade_id)` → état FEEDBACK_PENDING
-- [ ] Implémenter `submit_feedback(trade_id, feedback_data)` → état VALIDATED
-- [ ] Implémenter `auto_close_feedback(trade_id)` → état AUTO_CLOSED après 7 jours
+- [x] Implémenter `create_trade()` → état OPEN — `TradeLifecycle.create_trade()`
+- [x] Implémenter `close_trade_virtual()` → état CLOSED_WIN/LOSS/BE — `TradeLifecycle.close_trade()`
+- [ ] `create_signal()` → état GENERATED (optionnel)
+- [ ] `execute_trade()` → EXECUTED / ACTIVE (besoin execution manuelle)
+- [ ] `expire_signal()` → EXPIRED (optionnel)
+- [ ] Feedback utilisateur — non implémenté (besoin interface Telegram)
 
-### 7.4 Interface de Feedback
-- [ ] Créer `src/modules/journal/queries.py`
-- [ ] Implémenter `get_trades_awaiting_feedback()` — liste FBP
-- [ ] Implémenter `get_trade_by_id(trade_id)`
-- [ ] Implémenter `get_trades_by_setup_type(setup_type)`
-- [ ] Implémenter `get_trades_by_killzone(killzone)`
-- [ ] Implémenter `export_to_csv(filepath)`
-- [ ] Implémenter `export_to_json(filepath)`
+### 7.4 Interface de Requetes
+- [x] Créer `src/modules/journal/queries.py`
+- [x] Implémenter `get_open_trades()` / `get_open_trade_count()`
+- [x] Implémenter `get_today_pnl()` / `get_week_pnl()`
+- [x] Implémenter `get_drawdown_today_pct()` / `get_drawdown_week_pct()`
+- [x] Implémenter `get_win_rate()` / `get_total_trades_count()`
+- [ ] `get_trades_awaiting_feedback()` — non implémenté (besoin feedback)
+- [ ] Export CSV/JSON — non implémenté
 
 ### 7.5 Journal Post-Trade
-- [ ] Implémenter `log_post_trade(trade_id)` — format structuré pour logs
+- [x] Log structuré via `loguru` dans `TradeLifecycle.close_trade()`
+- [ ] `log_post_trade(trade_id)` format dédié — non implémenté
 
 **Validation de phase** : Un script crée un signal, l'exécute, le cloture virtuellement, soumet un feedback, et vérifie que l'état final est VALIDATED avec tous les champs remplis.
 

@@ -139,15 +139,17 @@ def main() -> int:
     logger.info(f"   Notes: {plan.notes}")
     assert plan.rr_ratio >= 2.0, f"R:R trop faible: {plan.rr_ratio}"
 
-    # 6. Verification absence sizing
-    logger.info("→ Test 6 : Verification absence sizing/position")
-    assert not hasattr(plan, "position_size"), "Le plan ne doit PAS contenir de sizing"
-    assert not hasattr(plan, "risk_pct"), "Le plan ne doit PAS contenir de % risque"
-    logger.info("   ✅ Pas de sizing — OK")
+    # 6. Verification sizing calcule
+    logger.info("→ Test 6 : Verification sizing calcule par RiskEngine")
+    assert hasattr(plan, "position_size_lots"), "Le plan doit contenir position_size_lots"
+    assert hasattr(plan, "risk_pct"), "Le plan doit contenir risk_pct"
+    assert plan.position_size_lots is not None and plan.position_size_lots > 0
+    assert plan.risk_pct is not None
+    logger.info(f"   ✅ Sizing: {plan.position_size_lots:.2f} lots | Risk: {plan.risk_pct}% | ${plan.risk_amount_dollars:.2f}")
 
     # Bilan
     logger.info("=" * 60)
-    logger.info("📊 BILAN PHASE 5")
+    logger.info("📊 BILAN PHASE 5 + 6")
     logger.info("   Score A+ : ✅")
     logger.info("   Score B  : ✅")
     logger.info("   Rejet N/A : ✅")
@@ -157,6 +159,8 @@ def main() -> int:
     logger.info("   Plan de trade complet (SL/TP pips, contexte, invalidation) : ✅")
     logger.info("   ATR-based SL : ✅")
     logger.info("   SignalInvalidator : ✅")
+    logger.info("   RiskEngine (SL/R:R validation, sizing, locks) : ✅")
+    logger.info("   Journal SQLite (trades, drawdown) : ✅")
     logger.info("=" * 60)
     logger.success("✅ Phase 5 VALIDE")
 

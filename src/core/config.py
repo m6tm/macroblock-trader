@@ -9,12 +9,24 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class TradingConfig(BaseSettings):
-    """Parametres de trading specifiques a l'Or (niveaux techniques uniquement)."""
+    """Parametres de trading specifiques a l'Or."""
 
     asset: str = Field(default="XAU/USD")
     sl_min_dollars: float = Field(default=15.0, ge=5.0)
     sl_max_pct_price: float = Field(default=1.0, ge=0.1, le=5.0)
     rr_minimum: float = Field(default=2.0, ge=1.0)
+
+
+class RiskConfig(BaseSettings):
+    """Gestion du risque et du capital virtuel."""
+
+    capital_virtual: float = Field(default=10_000.0, ge=1_000.0)
+    risk_pct_a_plus: float = Field(default=1.0, ge=0.1, le=5.0)
+    risk_pct_b: float = Field(default=0.5, ge=0.1, le=5.0)
+    max_trades_open: int = Field(default=1, ge=1)
+    drawdown_daily_pct: float = Field(default=2.0, ge=0.5)
+    drawdown_weekly_pct: float = Field(default=4.0, ge=1.0)
+    weekend_gap_lock: bool = True
 
 
 class KillzoneConfig(BaseSettings):
@@ -73,6 +85,7 @@ class Settings(BaseSettings):
 
     # Modules
     trading: TradingConfig = Field(default_factory=TradingConfig)
+    risk: RiskConfig = Field(default_factory=RiskConfig)
     killzones: KillzoneConfig = Field(default_factory=KillzoneConfig)
     timeframes: TimeframeConfig = Field(default_factory=TimeframeConfig)
     notifications: NotificationConfig = Field(default_factory=NotificationConfig)
@@ -84,6 +97,7 @@ class Settings(BaseSettings):
     screenshot_dir: Path = Path("screenshots")
     config_dir: Path = Path("config")
     chroma_db_dir: Path = Path("data/chroma_db")
+    db_path: Path = Path("data/trades.db")
 
     @field_validator("data_dir", "log_dir", "screenshot_dir", "config_dir", "chroma_db_dir")
     @classmethod
@@ -111,7 +125,7 @@ def validate_startup(settings: Settings) -> None:
 
     Verifie :
       - Presence des cles API si les modules associes sont actives
-      - Cohérence des parametres de trading
+      - Cohérence des parametres de trading et risque
       - Existence du repertoire de config
     """
     from core.exceptions import ConfigValidationError
@@ -135,3 +149,10 @@ def validate_startup(settings: Settings) -> None:
             raise ConfigValidationError(
                 f"Timeframe invalide pour '{attr}': {tf} (attendu {valid_tfs})"
             )
+
+    # 3. Coherence risque
+    if settings.risk.risk_pct_b >= settings.risk.risk_pct_a_plus:
+        raise ConfigValidationError(
+            f"risk_pct_b ({settings.risk.risk_pct_b}) doit etre < risk_pct_a_plus "
+            f"({settings.risk.risk_pct_a_plus})"
+        )
