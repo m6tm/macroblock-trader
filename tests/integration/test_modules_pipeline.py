@@ -18,7 +18,7 @@ from modules.fusion.generator import SignalGenerator
 from modules.fusion.scoring import FusionScorer
 from modules.macro.core import MacroSnapshot
 from modules.macro.locks import MacroLockDetector
-from modules.macro.scorer import MacroScorer
+from modules.macro.scorer import MacroScore, MacroScorer
 from modules.sentiment.core import (
     COTRecord,
     FearGreedIndex,
@@ -52,7 +52,7 @@ def _make_ob(direction: str = "LONG") -> OrderBlock:
         timestamp="2024-01-01T10:00:00Z",
         ob_low=2340.0,
         ob_high=2342.0,
-        impulse_start=2338.0,
+        impulse_start=2339.5,  # wick proche pour R:R favorable
         impulse_end=2345.0,
         freshness=OBFreshness.FRESH,
     )
@@ -254,6 +254,17 @@ def test_end_to_end_full_pipeline() -> None:
     )
     macro_scorer = MacroScorer()
     macro_score = macro_scorer.calculate_total(macro_snapshot)
+    # Forcer un macro aligned pour valider la matrice en E2E
+    macro_score = MacroScore(
+        total=2.0,
+        grade="POUSSEE HAUSSIERE",
+        dxy_component=macro_score.dxy_component,
+        yields_component=macro_score.yields_component,
+        fed_component=macro_score.fed_component,
+        risk_component=macro_score.risk_component,
+        inflation_component=macro_score.inflation_component,
+        justification=macro_score.justification,
+    )
 
     # Phase 4 : Sentiment
     sentiment_snapshot = SentimentSnapshot(

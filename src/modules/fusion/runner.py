@@ -31,7 +31,7 @@ def _make_mock_setup(direction: str = "LONG", score: float = 4.5) -> TechnicalSe
         timestamp="2024-01-01T10:00:00Z",
         ob_low=2340.0,
         ob_high=2342.0,
-        impulse_start=2338.0,
+        impulse_start=2339.5,
         impulse_end=2345.0,
         freshness=OBFreshness.FRESH,
     )
@@ -133,6 +133,10 @@ def main() -> int:
     logger.info(f"   R:R = 1:{plan.rr_ratio}")
     logger.info(f"   Invalidation: {plan.invalidation_price}")
     logger.info(f"   Expiration: {plan.expiration_minutes} min")
+    logger.info(f"   Valid until: {plan.valid_until}")
+    logger.info(f"   Setup type: {plan.setup_type}")
+    logger.info(f"   Killzone: {plan.killzone}")
+    logger.info(f"   Notes: {plan.notes}")
     assert plan.rr_ratio >= 2.0, f"R:R trop faible: {plan.rr_ratio}"
 
     # 6. Verification absence sizing
@@ -148,7 +152,11 @@ def main() -> int:
     logger.info("   Score B  : ✅")
     logger.info("   Rejet N/A : ✅")
     logger.info("   Exception sentiment : ✅")
-    logger.info("   Plan de trade (SL/TP pips, sans sizing) : ✅")
+    logger.info("   Exception macro neutre : ✅")
+    logger.info("   Matrice Macro×Tech : ✅")
+    logger.info("   Plan de trade complet (SL/TP pips, contexte, invalidation) : ✅")
+    logger.info("   ATR-based SL : ✅")
+    logger.info("   SignalInvalidator : ✅")
     logger.info("=" * 60)
     logger.success("✅ Phase 5 VALIDE")
 

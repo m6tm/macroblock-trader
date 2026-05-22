@@ -286,39 +286,40 @@ src/
 
 ---
 
-## Phase 5 — Moteur Fusion & Scoring ✅
+## Phase 5 — Moteur Fusion & Scoring ✅ (TERMINEE)
 
 **Objectif** : Le bot agrège tous les scores et génère (ou rejette) un signal.
 
 ### 5.1 Formule de Scoring Globale
 - [x] Créer `src/modules/fusion/scoring.py`
-- [ ] Implémenter `calculate_total_score(macro, technical, timing)`
-- [ ] Pondération : Macro 30% + Tech 50% + Timing 20%
-- [ ] Retourner le score brut et le score ajusté (si cerveau vectoriel actif)
+- [x] Implémenter `calculate_total_score(macro, technical, timing)` — `FusionScorer.calculate_total()`
+- [x] Pondération : Macro 30% + Tech 50% + Timing 20%
+- [x] Retourner le score brut et le score ajusté (sentiment exception +0.5)
 
 ### 5.2 Matrice de Décision
 - [x] Implémenter `evaluate_grade(score_total)` — A+ / B / C / N/A
-- [ ] Implémenter `evaluate_macro_technique_matrix(macro, technical)`
-- [ ] Vérifier les exceptions autorisées (macro neutre + tech 5.5/5.5)
-- [ ] Rejeter tout signal < 2.5
+- [x] Implémenter `evaluate_macro_technique_matrix(macro, technical)` — matrice complète
+- [x] Vérifier les exceptions autorisées (macro neutre + tech 5 + timing 2)
+- [x] Rejeter tout signal < 2.5 (seuil strict avant plan)
 
 ### 5.3 Génération du Plan de Trade
-- [x] Créer `src/modules/fusion/generator.py` (renommé depuis signal.py)
-- [x] Implémenter `generate_trade_plan(setup, score, grade)`
-- [ ] Calculer la zone d'entrée exacte (low/high de l'OB)
-- [ ] Calculer le SL (wick + buffer ATR × 0.5, min 15$, max 1% prix)
-- [x] Calculer TP1 (premier FVG opposé / liquidité / niveau psy)
-- [x] Calculer TP2 (structure opposée / OB inverse H1)
-- [x] Calculer TP3 (Trail après BE)
+- [x] Créer `src/modules/fusion/generator.py`
+- [x] Implémenter `generate_trade_plan(setup, score, grade)` — `SignalGenerator.generate()`
+- [x] Calculer la zone d'entrée exacte (low/high de l'OB)
+- [x] Calculer le SL (wick + buffer ATR × 0.5, min 15$, max 1% prix)
+- [x] Calculer TP1 (premier FVG opposé / liquidité / niveau psy) + ratio/allocation
+- [x] Calculer TP2 (structure opposée / OB inverse H1) + ratio/allocation
+- [x] Calculer TP3 (Trail après BE) + ratio/allocation
 - [x] Calculer le R:R attendu
 - [x] Générer le `signal_id` (SIG-YYYYMMDD-NNN)
-- [ ] Générer le `trade_id` (TRADE-YYYYMMDD-NNN) — réservé, activé si exécution
+- [x] Générer le `trade_id` (TRADE-YYYYMMDD-NNN) — réservé, activé si exécution
+- [x] Champs complets : `valid_until`, `pair`, `setup_type`, `macro_context`, `technical_context`, `killzone`, `notes`, `sl_distance_pct`
 
 ### 5.4 Invalidation Automatique
-- [ ] Implémenter `check_invalidation_long(signal, current_price)` — cloture M5 sous OB
-- [ ] Implémenter `check_invalidation_short(signal, current_price)` — cloture M5 au-dessus OB
-- [x] Implémenter `check_expiration(signal, current_time)` — 3 candles M15
-- [ ] Implémenter `check_macro_invalidation(signal, active_locks)`
+- [x] Implémenter `check_invalidation_long(signal, current_price)` — cloture M5 sous OB
+- [x] Implémenter `check_invalidation_short(signal, current_price)` — cloture M5 au-dessus OB
+- [x] Implémenter `check_expiration(signal, current_time)` — 45 min (3 candles M15)
+- [x] Implémenter `check_macro_invalidation(signal, active_locks)`
 
 **Validation de phase** : Un script injecte un setup fictif et retourne un plan de trade complet avec grade, SL, TP, R:R — ou un rejet justifié.
 
